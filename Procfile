@@ -1,0 +1,1 @@
+worker: python oten_tebo.py
