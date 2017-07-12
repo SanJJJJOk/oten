@@ -3,12 +3,14 @@
 import random
 import requests
 import logging
+import time
 from lxml import html, etree
 
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class Request(object):
     '''
@@ -18,7 +20,6 @@ class Request(object):
         self.url = url
         self.page = None
         self.session = requests.session()
-        self.log = logging.getLogger(__name__)
 
         self.session.headers.update({
             'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.6,en;q=0.4',
@@ -31,7 +32,7 @@ class Request(object):
 
         if resp is not None:
             if 'login.aspx' in resp.url:
-                self.log.info('Необходимо авторизироваться: {}'.format(resp.url))
+                logger.info('Необходимо авторизироваться: {}'.format(resp.url))
                 return False
             elif 200 <= resp.status_code <= 299:
                 parser = html.HTMLParser(encoding='utf-8')
@@ -39,7 +40,7 @@ class Request(object):
                 self.page = page
                 return True
             else:
-                self.log.info('Не удалось загрузить страницу')
+                logger.info('Не удалось загрузить страницу')
                 return resp.status_cod
 
 
@@ -76,7 +77,7 @@ class Request(object):
         result = self._request_wrapper(resp)
         if result:
             text_answer = self.page.xpath('//*[@class="history"]/li[1]/text()')[0]
-            self.log.info(text_answer)
+            logger.info(text_answer)
             if 'код верный' in text_answer:
                 return True
             else:
@@ -107,13 +108,13 @@ class Request(object):
             #Данный код основывается на том что при авторизации
             #у нас будет переадресация на главную старницу
             if resp.history:
-                self.log.info("LogIN")
+                logger.info("LogIN")
                 return True
             else:
-                self.log.info("LogOUT")
+                logger.info("LogOUT")
                 return False
         else:
-            self.log.info('Bad args for login')
+            logger.info('Bad args for login')
             return None
 
 
@@ -141,6 +142,76 @@ class Request(object):
                 return int(lvl)
             except IndexError:
                 return None
+
+
+    def get_lvl_title(self, page=None):
+        '''
+        Function get current Level Number
+        Result:
+            lvl_title(str)
+        '''
+        if page is None:
+            page = self.page
+        
+        if page is not None:
+            lvl_title = page.xpath('//h2')[0]
+            return lvl_title.text_content()
+
+
+    def check_ap(self, page=None):
+        '''-'''
+        if page is None:
+            page = self.page
+        ap = page.xpath('//h3[@class="timer"]/span/text()')
+        if ap:
+            return ap
+        else:
+            return None
+
+
+    def check_help(self, page=None):
+        '''
+        Find and count helps on lvl
+
+        Returns:
+            tuple of list:
+                1: list time of close helps
+                2: list time of opened helps
+        '''
+        if page is None:
+            page = self.page
+
+        helps_close = page.xpath('//span[@class="color_dis" and starts-with(., "Подсказка")]/span/text()')
+        helps_open = page.xpath('//h3[starts-with(., "Подсказка")]/text()')
+
+        if helps_close or helps_open:
+            return helps_close, helps_open
+        else:
+            return None
+
+
+    def get_sectors_title(self, page=None):
+        """
+        Get information about sectors from en
+        
+        Result:
+            tuple:
+                1: Total number of sectors
+                2: Number of sectors to be closed
+        """
+        if page is None:
+            page = self.page
+        
+        sector_title_1 = page.xpath('//h3[starts-with(., "На уровне")]/text()')[0]
+        print(sector_title_1)
+        total = sector_title_1.split(' ')[2]
+
+        try:        
+            sector_title_1 = page.xpath('//h3[starts-with(., "На уровне")]/span/text()')[0]
+            need = sector_title_1.split(' ')[2][:-1]
+        except IndexError:
+            need = total
+        return(total, need)
 
 
 
@@ -183,71 +254,123 @@ class Request(object):
     def get_block(self, page=None, header='Задание'):
         '''
         Get full block with name
+
+        Return:
+            list:
+                1: Text block (str)
+                2: Imgs list (tuple)
+        
+        If there is't block return None
         '''
+
         if page is None:
             page = self.page
         end = None
         
         #Get parent for index element
-        cont = self.page.xpath('//div[@class="content"]')[0]
+        cont = page.xpath('//div[@class="content"]')[0]
 
         #Get start point
-        start = cont.index(cont.xpath('//h3[text()="%s"]' %header)[0])+1
-        #Try get end point.
         try:
-            space_list = cont.xpath('//div[@class="spacer"]')
-            index_list = list(cont.index(x) for x in space_list if cont.index(x) > start)
-            end = index_list[0]
+            start = cont.index(cont.xpath('//h3[text()="%s"]' %header)[0])+1
         except IndexError:
-            pass
-
-        #Fix <br> tags
-        for br_tag in cont.xpath("*//br"):
-            br_tag.tail = "\n" + br_tag.tail if br_tag.tail else "\n"
-
-        text_block = []
-        imgs_block = set()
-
-        #Foreach element between tags
-        for item in cont[start:end]:
-            #headling image
-            img_list, item = self.handling_img_block(item)
-            imgs_block.update(img_list)
-            #headling text
-            text_block.append(self.clear_string(item.text_content()))
-
+            start = None
         
-        return("\n".join(text_block),imgs_block)
+        if start is not None:
+            #Try get end point.
+            try:
+                space_list = cont.xpath('//div[@class="spacer"]')
+                index_list = list(cont.index(x) for x in space_list if cont.index(x) > start)
+                end = index_list[0]
+            except IndexError:
+                pass
+
+            #Fix <br> tags
+            for br_tag in cont.xpath("*//br"):
+                br_tag.tail = "\n" + br_tag.tail if br_tag.tail else "\n"
+
+            text_block = []
+            imgs_block = set()
+
+            #Foreach element between tags
+            for item in cont[start:end]:
+                #headling image
+                img_list, item = self.handling_img_block(item)
+                imgs_block.update(img_list)
+                #headling text
+                text_block.append(self.clear_string(item.text_content()))
+            
+            return("\n".join(text_block),tuple(imgs_block))
+        else:
+            return None
 
 
     def handling_img_block(self, page):
-        '''Заменяет все <img> ссылки на текстовый вариант'''
+        """
+        Replace IMG tags to plain text
+
+        Result:
+            img_list (list)
+            page (html.doc)
+        """
         image_list = set()
+        #find all img tags
         for img in page.xpath("./img"):
+            #Take url and name
             url = img.get('src')
             name = url[url.rfind('/')+1:]
 
-            image_list.add(name + ':' + url)
+            #image_list.add(name + ':' + url)
+            image_list.add('[{}]({})'.format(name, url))
 
             newtag = etree.Element("a", href=url)
-            newtag.text = '[' + name + ']'
+            #newtag.text = '[' + name + ']'
+            newtag.text = '[{}]({})'.format(name, url)
 
             img.getparent().replace(img,newtag)
         return image_list.copy(), page
 
 
+    def get_get_img(self, page=None):
+        '''
+        Get all image
+
+        Return:
+            Imgs list (tuple)
+        
+        If there is't block return None
+        '''
+
+        if page is None:
+            page = self.page
+        end = None
+        
+        image_list = set()
+        #find all img tags
+        for img in page.xpath('//div[@class="content"]/img'):
+            #Take url and name
+            url = img.get('src')
+            name = url[url.rfind('/')+1:]
+            #image_list.add(name + ':' + url)
+            image_list.add('[{}]({})'.format(name, url))
+        return tuple(image_list)
+
+
+
 def main():
     """-"""
     requ = Request()
+    #page = requ.get_page('http://demo.en.cx/gameengines/encounter/play/26971')
     
-    page = requ.get_page('http://demo.en.cx/gameengines/encounter/play/26971')
+    page = html.parse('example_page/without_time.html')
+    
+    print(requ.check_help(page=page))
 
+    #print(requ.get_sectors_title(page=page))
+    #print(requ.get_sectors(page=page, filt=None))
+    #print(requ.get_sectors(page=page, filt=True))
+    #print(requ.get_sectors(page=page, filt=False))
 
-    #page = html.parse('example_page/Img_Test.html')
-
-    #print(requ.get_lvl(page))
-    #print(requ.get_sectors())
-    #print(requ.get_block())
 
 
 if __name__ == '__main__':

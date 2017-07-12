@@ -30,58 +30,42 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
                     level=logging.INFO) #filename='logfile.log')
 logger = logging.getLogger(__name__)
 
-#update.message.text.split(None, 1)[1]
 oten = Oten()
-access = {64798180}
-#que = Queue.Queue()
+access_user_list = {'64798180'}
+access_chat_list = {'64798180'}
+
 
 def decor_log(method):
-    def logging_f(bot, update):
-        print('IN: UserID:%d User:"%s" Message:"%s"' %(
-                update.message.from_user.id,
-                update.message.from_user.username,
-                update.message.text))
-        return method(bot, update)
+    '''Just log it'''
+    def logging_f(*args, **kwargs):
+        #args = bot, update
+        logger.info('IN: ChatID:%d UserID:%d User:"%s" Message:"%s"' %(
+                    args[1].message.chat_id,
+                    args[1].message.from_user.id,
+                    args[1].message.from_user.username,
+                    args[1].message.text))
+        return method(*args, **kwargs)
     return logging_f
 
 
-def decor_user_access(method):
-    def logging_access_f(bot, update):
-        logger.info('IN: ChatID:%d UserID:%d User:"%s" Message:"%s"' %(
-                    update.message.chat_id,
-                    update.message.from_user.username,
-                    update.message.text))
-        if update.message.from_user.id in access:
-            return method(bot, update)
+def access_user(method):
+    ''' Check user access'''
+    def logging_access_f(*args, **kwargs):
+        #args = bot, update
+        if str(args[1].message.from_user.id) in access_user_list:
+            return method(*args, **kwargs)
         else:
-            bot.sendMessage(update.message.chat_id, text="Deny access")
+            args[0].sendMessage(args[1].message.chat_id, text="Deny access")
     return logging_access_f
 
 
-def decor_chat_access(method):
-    def logging_access_f(bot, update):
-        logger.info('IN: ChatID:%d UserID:%d User:"%s" Message:"%s"' %(
-                    update.message.chat_id,
-                    update.message.from_user.username,
-                    update.message.text))
-        if update.message.from_user.id in access:
-            return method(bot, update)
+def access_chat(method):
+    ''' Check chat access'''
+    def logging_access_f(*args, **kwargs):
+        if str(args[1].message.chat_id) in access_chat_list:
+            return method(*args, **kwargs)
         else:
-            bot.sendMessage(update.message.chat_id, text="Deny access")
-    return logging_access_f
-
-
-def decor_chat_access(method):
-    def logging_access_f(bot, update):
-        logger.info('IN: ChatID:%d UserID:%d User:"%s" Message:"%s"' %(
-                    update.message.chat_id,
-                    update.message.from_user.id,
-                    update.message.from_user.username,
-                    update.message.text))
-        if update.message.chat_id in access:
-            return method(bot, update)
-        else:
-            bot.sendMessage(update.message.chat_id, text="Deny access")
+            args[0].sendMessage(args[1].message.chat_id, text="Deny access")
     return logging_access_f
 
 
@@ -100,7 +84,26 @@ def get_page_demon(bot, chat_id):
             new_lvl = oten.check_lvl()
             if new_lvl:
                 #If new level say it
-                bot.send_message(chat_id=chat_id, text='#АП Уровень:{}'.format(oten.lastlvl))
+                bot.send_message(chat_id=chat_id, 
+                            text='#АП Уровень:{}'.format(oten.lastlvl),
+                            parse_mode='markdown')
+                mess, img_list = oten.new_lvl()
+                bot.send_message(chat_id=chat_id, 
+                            text=mess,
+                            parse_mode='markdown')
+                if img_list:
+                    for img in img_list:
+                        bot.send_message(chat_id=chat_id, 
+                                text=img,
+                                parse_mode='markdown')
+            else:
+                new_help = oten.check_helps()
+                if new_help:
+                        bot.send_message(chat_id=chat_id, text='Подсказка:\n' + new_help[0])
+                        #Try send Images
+                        if len(new_help[1]) > 1:
+                            bot.send_message(chat_id=chat_id, text='\n'.join(new_help[1]))
+        
         elif page_res is False:
             #If need login again
             oten.login_en()
@@ -112,27 +115,35 @@ def get_page_demon(bot, chat_id):
 
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
+#@access_user
+@decor_log
 def start(bot, update):
     '''starting func'''
     update.message.reply_text('Hi!')
 
 
+@decor_log
+@access_user
 def help(bot, update):
     update.message.reply_text('Help!')
+    
 
-
+@decor_log
+@access_user
 def status(bot, update):
     update.message.reply_text('ChatId:{} \nUserId:{}'.format(
                                     update.message.chat_id,
                                     update.message.from_user.id))
 
 
-def gameurl(bot, update):
+@decor_log
+@access_user
+def gameurl(bot, update, args):
     '''-'''
     try:
-        str_in = update.message.text.split(None, 1)[1]
-    except:
-        pass
+        str_in = args[0]
+    except IndexError:
+        str_in = None
 
     if str_in:
         done = oten.args_from_url(str_in)
@@ -144,24 +155,31 @@ def gameurl(bot, update):
         update.message.reply_text('Ссылка на игру: {}'.format( oten.generation_url() ))
 
 
+@decor_log
+@access_user
 def gamelogin(bot, update):
     '''-'''
     oten.login = update.message.text.split(None, 1)[1]
     update.message.reply_text('Login принят')
 
 
+@decor_log
+@access_user
 def gamepas(bot, update):
     '''-'''
     oten.passw = update.message.text.split(None, 1)[1]
     update.message.reply_text('Password принят')
 
 
+@decor_log
+@access_user
 def gamestart(bot, update):
     '''-'''
     done = oten.login_en()
     if done is True:
         update.message.reply_text('LogIN - Успешный')
         oten.ingame = True
+        access_chat_list.add(update.message.chat_id)
         get_page_demon(bot, update.message.chat_id)
     if done is False:
         update.message.reply_text('Login или Password не верный')
@@ -169,11 +187,15 @@ def gamestart(bot, update):
         update.message.reply_text('Необходимы Login или Password')
 
 
+@decor_log
+@access_user
 def gamestop(bot, update):
         oten.ingame = False
         update.message.reply_text('Игра остановлена')
 
 
+@decor_log
+@access_chat
 def task(bot, update):
     '''
     Get task from lvl
@@ -182,13 +204,45 @@ def task(bot, update):
         2) Set of images
     '''
     result = oten.get_task()
-    update.message.reply_text('Задание:\n' + result[0])
-    
+    update.message.reply_text(result[0], parse_mode='markdown')
+
     #Try send Images
     if len(result) > 1:
-        update.message.reply_text('\n'.join(result[1]))
+        for item in result[1]:
+            update.message.reply_text(item, parse_mode='markdown')
 
 
+@decor_log
+@access_chat
+def hint(bot, update, args):
+    '''
+    Get task from lvl
+    Return 2 message:
+        1) Text and Name_img with save structur html
+        2) Set of images
+    '''
+    #try  get arguments from message
+    try:
+        str_in = args[0]
+        #Try get hint of number or last
+        result = oten.get_helps(number=str_in)
+        if result:
+            update.message.reply_text(result[0], parse_mode='markdown')
+            #Try send Images
+            if len(result) > 1:
+                for item in result[1]:
+                    update.message.reply_text(item, parse_mode='markdown')
+        else:
+            update.message.reply_text('На уровне {} подсказок, на данный момент доступно {}'\
+                            ''.format(oten.help_close + oten.help_open, oten.help_open))
+    except IndexError:
+        update.message.reply_text('На уровне {} подсказок, на данный момент доступно {}'\
+                        ''.format(oten.help_close + oten.help_open, oten.help_open))
+
+
+
+@decor_log
+@access_chat
 def sect(bot, update):
     '''-'''
     result = oten.get_sectors()
@@ -198,6 +252,8 @@ def sect(bot, update):
         update.message.reply_text('На уровне 1 секторов')
 
 
+@decor_log
+@access_chat
 def sect_lef(bot, update):
     '''-'''
     result = oten.get_sectors(filt=False)
@@ -207,24 +263,35 @@ def sect_lef(bot, update):
         update.message.reply_text('На уровне 1 секторов')
 
 
-def time_f(bot, update):
+@decor_log
+@access_chat
+def time_left(bot, update):
     '''-'''
-    update.message.reply_text('')
+    result = oten.time_left()
+    if result:
+        update.message.reply_text(result)
+    else:
+        update.message.reply_text('Ни каких временых рамок нет')
 
 
-def hint(bot, update):
-    '''-'''
-    update.message.reply_text('')
 
-
+@decor_log
+@access_chat
 def bonus(bot, update):
     '''-'''
     update.message.reply_text('')
 
 
+@access_chat
 def code(bot, update):
     '''-'''
     if update.message.text.startswith('.'):
+        logger.info('IN: ChatID:%d UserID:%d User:"%s" Message:"%s"' %(
+                    update.message.chat_id,
+                    update.message.from_user.id,
+                    update.message.from_user.username,
+                    update.message.text))
+
         result = oten.check_answer(update.message.text[1:])
         if result is True:
             update.message.reply_text('+')
@@ -250,18 +317,21 @@ def main():
     dp.add_handler(CommandHandler("help", help))
     dp.add_handler(CommandHandler("status", status))
 
-    dp.add_handler(CommandHandler("gameurl", gameurl))
+    dp.add_handler(CommandHandler("gameurl", gameurl, pass_args=True))
     dp.add_handler(CommandHandler("gamelogin", gamelogin))
     dp.add_handler(CommandHandler("gamepas", gamepas))
     dp.add_handler(CommandHandler("gamestart", gamestart))
     dp.add_handler(CommandHandler("gamestop", gamestop))
 
+    #dp.add_handler(CommandHandler("connect", connect_chat))
+    #dp.add_handler(CommandHandler("disconnect", disconnect_chat))
+
     dp.add_handler(CommandHandler("task", task))
     dp.add_handler(CommandHandler("sect", sect))
-    dp.add_handler(CommandHandler("sectlef", sect_lef))
+    dp.add_handler(CommandHandler("sectleft", sect_lef))
     
-    dp.add_handler(CommandHandler("time", time_f))
-    dp.add_handler(CommandHandler("hint", hint))
+    dp.add_handler(CommandHandler("time", time_left))
+    dp.add_handler(CommandHandler("hint", hint, pass_args=True))
     dp.add_handler(CommandHandler("bonus", bonus))
 
 
@@ -273,11 +343,13 @@ def main():
 
     # Start the Bot
     updater.start_polling()
+    logger.info('Bot started')
 
     # Run the bot until you press Ctrl-C or the process receives SIGINT,
     # SIGTERM or SIGABRT. This should be used most of the time, since
     # start_polling() is non-blocking and will stop the bot gracefully.
     updater.idle()
+
 
 
 if __name__ == '__main__':

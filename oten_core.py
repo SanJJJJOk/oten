@@ -14,6 +14,7 @@ from request import Request
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class Oten():
@@ -23,7 +24,6 @@ class Oten():
 
     def __init__(self, url_game=None):
         """-"""
-        self.log = logging.getLogger(__name__)
         self.domain = None
         self.gid = None
         self.login = None
@@ -32,6 +32,8 @@ class Oten():
         self.ingame = False
         
         self.lastlvl = 0
+        self.help_close = 0
+        self.help_open = 0
 
         if url_game is not None:
             self.args_from_url(url_game)
@@ -95,8 +97,53 @@ class Oten():
 
 
     def get_task(self):
+        """
+        Get full block with name
+
+        Return:
+            list:
+                1: Text block (str) - Text with markdown
+                2: Imgs list (tuple)
+        
+        If there is't block return None
+        """
+        task_blocks = self.req.get_block(header='Задание')
+        task_text = '*Задание:*\n{}'.format(task_blocks[0])
+
+        return task_text, task_blocks[1]
+
+
+    def get_helps(self, number=None):
         '''-'''
-        return self.req.get_block(header='Задание')
+        if number is None:
+            number = self.help_open
+        header = 'Подсказка {}'.format(number)
+        hint_blocks = self.req.get_block(header=header)
+        hint_text = '*{}:*\n{}'.format(header, hint_blocks[0])
+        return hint_text, hint_blocks[1]
+
+
+    def time_left(self):
+        """
+        Collects and processes timers
+
+        Result:
+            Str - ready message
+        """
+        time_up = self.req.check_ap()
+        time_hint = self.req.check_help()
+        result = ''
+
+        if time_up:
+            result += 'Авто Переход через {}\n\n'.format(time_up[0])
+        if time_hint[0]:
+            result += 'Подсказки будут через:\n'
+            for time_str in time_hint[0]:
+                result += '{}\n'.format(time_str)
+        if result is not '':
+            return result
+        else:
+            return 'На уровне нет таймеров'
 
 
     def check_lvl(self):
@@ -118,6 +165,42 @@ class Oten():
             return self.req.send_answer(answer=answer)
         else:
             return None
+
+
+    def check_helps(self):
+        '''
+        Check open new help or not
+        '''
+        helps_list = self.req.check_help()
+        if helps_list is not None:
+            heco = len(helps_list[0])
+            heop = len(helps_list[1])
+            if (self.help_close != heco) and (self.help_open != heop):
+                self.help_close = heco
+                self.help_open = heop
+                return self.req.get_block(header='Подсказка {}'.format(heop))
+            else:
+                return None
+
+
+    def new_lvl(self):
+        '''-'''
+        self.help_close = 0
+        self.help_open = 0
+
+        title = self.req.get_lvl_title()
+        timer = self.time_left()
+        
+        sect_count = self.req.get_sectors_title()
+        sect_title = 'Нужно закрыть: {} из {}'.format(sect_count[1],sect_count[0])
+
+        task = self.get_task()
+        logger.info(task)
+
+        result = '*{0}*\n{2}\n{1}\n{3}'.format(title, timer, sect_title, task[0])
+        return result,task[1]
+
+
 
 
 
