@@ -125,7 +125,7 @@ def start(bot, update):
 @decor_log
 @access_user
 def help(bot, update):
-    update.message.reply_text('Help!')
+    update.message.reply_text(config.HELP)
     
 
 @decor_log
