@@ -31,6 +31,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 oten = Oten()
+debug_mode
 access_user_list = {'64798180'}
 access_chat_list = {'64798180'}
 
@@ -77,7 +78,8 @@ def get_page_demon(bot, chat_id):
     #While game in active
     while oten.ingame is True:
         time.sleep(2) # wait 2 sec
-        bot.send_message(chat_id=chat_id, text='.')
+        #bot.send_message(chat_id=chat_id, text='.')
+        bot.send_chat_action(chat_id=chat_id, action=telegram.ChatAction.TYPING)
         page_res = oten.req.get_page() # Get page
         #if get_page is success
         if page_res is True:
@@ -131,9 +133,11 @@ def help(bot, update):
 @decor_log
 @access_user
 def status(bot, update):
-    update.message.reply_text('ChatId:{} \nUserId:{}'.format(
+    update.message.reply_text('ChatId:{} \nUserId:{}\n\n ChatList:{}\n UserList{}'.format(
                                     update.message.chat_id,
-                                    update.message.from_user.id))
+                                    update.message.from_user.id,
+                                    access_user_list,
+                                    access_chat_list))
 
 
 @decor_log
