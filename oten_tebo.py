@@ -297,9 +297,9 @@ def code(bot, update):
 
         result = oten.check_answer(update.message.text[1:])
         if result is True:
-            update.message.reply_text('+')
+            update.message.reply_text('✅ Код верный')
         elif result is False:
-            update.message.reply_text('-')
+            update.message.reply_text('❌ Код НЕ верный')
         else:
             pass
 
