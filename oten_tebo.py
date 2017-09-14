@@ -32,8 +32,8 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 oten = Oten()
-access_user_list = {'64798180'}
-access_chat_list = {'64798180'}
+access_user_list = {64798180,}
+access_chat_list = {64798180,}
 
 
 def decor_log(method):
@@ -53,7 +53,7 @@ def access_user(method):
     ''' Check user access'''
     def logging_access_f(*args, **kwargs):
         #args = bot, update
-        if str(args[1].message.from_user.id) in access_user_list:
+        if args[1].message.from_user.id in access_user_list:
             return method(*args, **kwargs)
         else:
             args[0].sendMessage(args[1].message.chat_id, text="Deny access")
@@ -136,8 +136,8 @@ def status(bot, update):
     update.message.reply_text('ChatId:{} \nUserId:{}\n\n ChatList:{}\n UserList{}'.format(
                                     update.message.chat_id,
                                     update.message.from_user.id,
-                                    access_user_list,
-                                    access_chat_list))
+                                    access_chat_list,
+                                    access_user_list))
 
 
 @decor_log
@@ -286,10 +286,9 @@ def bonus(bot, update):
     update.message.reply_text('')
 
 
-@access_chat
 def code(bot, update):
     '''-'''
-    if update.message.text.startswith('.'):
+    if update.message.text.startswith('.') and update.message.chat_id in access_chat_list:
         logger.info('IN: ChatID:%d UserID:%d User:"%s" Message:"%s"' %(
                     update.message.chat_id,
                     update.message.from_user.id,
