@@ -16,6 +16,7 @@ bot.
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram.ext.dispatcher import run_async
+from telegram import ChatAction
 from threading import Thread
 from oten_core import Oten
 import logging
@@ -79,7 +80,7 @@ def get_page_demon(bot, chat_id):
     while oten.ingame is True:
         time.sleep(2) # wait 2 sec
         #bot.send_message(chat_id=chat_id, text='.')
-        bot.send_chat_action(chat_id=chat_id, action=telegram.ChatAction.TYPING)
+        bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
         page_res = oten.req.get_page() # Get page
         #if get_page is success
         if page_res is True:
