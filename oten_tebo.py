@@ -63,7 +63,7 @@ def access_user(method):
 def access_chat(method):
     ''' Check chat access'''
     def logging_access_f(*args, **kwargs):
-        if str(args[1].message.chat_id) in access_chat_list:
+        if args[1].message.chat_id in access_chat_list:
             return method(*args, **kwargs)
         else:
             args[0].sendMessage(args[1].message.chat_id, text="Deny access")
