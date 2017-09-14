@@ -203,7 +203,7 @@ class Request(object):
             page = self.page
         
         sector_title_1 = page.xpath('//h3[starts-with(., "На уровне")]/text()')[0]
-        print(sector_title_1)
+        #print(sector_title_1)
         total = sector_title_1.split(' ')[2]
 
         try:        

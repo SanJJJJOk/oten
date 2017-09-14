@@ -96,6 +96,23 @@ class Oten():
         return self.req.get_sectors(filt=filt)
 
 
+    def count_sectors(self):
+        '''
+        Get Sectors at lvl
+        Args:
+            page - html page for parsing
+            
+        Rets:
+            List of integer:
+            1 - all sectors
+            2 - closed sectors
+        '''
+        sect_count = self.req.get_sectors_title()
+        return sect_count
+
+
+
+
     def get_task(self):
         """
         Get full block with name
