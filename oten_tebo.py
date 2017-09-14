@@ -32,7 +32,6 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 oten = Oten()
-debug_mode
 access_user_list = {'64798180'}
 access_chat_list = {'64798180'}
 
