@@ -87,7 +87,7 @@ def get_page_demon(bot, chat_id):
             if new_lvl:
                 #If new level say it
                 bot.send_message(chat_id=chat_id, 
-                            text='#АП Уровень:{}'.format(oten.lastlvl),
+                            text='❗ #АП Уровень:{}'.format(oten.lastlvl),
                             parse_mode='markdown')
                 mess, img_list = oten.new_lvl()
                 bot.send_message(chat_id=chat_id, 
