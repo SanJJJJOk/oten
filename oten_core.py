@@ -111,8 +111,6 @@ class Oten():
         return sect_count
 
 
-
-
     def get_task(self):
         """
         Get full block with name

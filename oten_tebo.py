@@ -87,7 +87,7 @@ def get_page_demon(bot, chat_id):
             if new_lvl:
                 #If new level say it
                 bot.send_message(chat_id=chat_id, 
-                            text='❗ #АП Уровень:{}'.format(oten.lastlvl),
+                            text='❗ #АП Уровень:{0}'.format(oten.title),
                             parse_mode='markdown')
                 mess, img_list = oten.new_lvl()
                 bot.send_message(chat_id=chat_id, 
@@ -237,10 +237,10 @@ def hint(bot, update, args):
                 for item in result[1]:
                     update.message.reply_text(item, parse_mode='markdown')
         else:
-            update.message.reply_text('На уровне {} подсказок, на данный момент доступно {}'\
+            update.message.reply_text('На уровне {0} подсказок, на данный момент доступно {1}'\
                             ''.format(oten.help_close + oten.help_open, oten.help_open))
     except IndexError:
-        update.message.reply_text('На уровне {} подсказок, на данный момент доступно {}'\
+        update.message.reply_text('На уровне {0} подсказок, на данный момент доступно {1}'\
                         ''.format(oten.help_close + oten.help_open, oten.help_open))
 
 
