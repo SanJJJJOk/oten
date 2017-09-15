@@ -92,7 +92,8 @@ def get_page_demon(bot, chat_id):
                 mess, img_list = oten.new_lvl()
                 bot.send_message(chat_id=chat_id, 
                             text=mess,
-                            parse_mode='markdown')
+                            parse_mode='markdown',
+                            disable_web_page_preview=True)
                 if img_list:
                     for img in img_list:
                         bot.send_message(chat_id=chat_id, 
@@ -101,7 +102,8 @@ def get_page_demon(bot, chat_id):
             else:
                 new_help = oten.check_helps()
                 if new_help:
-                        bot.send_message(chat_id=chat_id, text='Подсказка:\n' + new_help[0])
+                        bot.send_message(chat_id=chat_id, text='❔*Подсказка*:\n' + new_help[0],
+                                        parse_mode='markdown')
                         #Try send Images
                         if len(new_help[1]) > 1:
                             bot.send_message(chat_id=chat_id, text='\n'.join(new_help[1]))
@@ -250,8 +252,10 @@ def hint(bot, update, args):
 def sect(bot, update):
     '''-'''
     result = oten.get_sectors()
+    count_sect = oten.count_sectors()
     if result:
-        update.message.reply_text('Сектора:\n' + '\n'.join(result))
+        sect_header = 'Осталось *{0}* из {1}\n'.format(count_sect[1],count_sect[0]))
+        update.message.reply_text(sect_header + 'Сектора:\n' + '\n'.join(result))
     else:
         update.message.reply_text('На уровне 1 секторов')
 
@@ -262,7 +266,8 @@ def sect_lef(bot, update):
     '''-'''
     result = oten.get_sectors(filt=False)
     if result:
-        update.message.reply_text('Сектора:\n' + '\n'.join(result))
+        sect_header = 'Осталось *{0}* из {1}\n'.format(count_sect[1],count_sect[0]))
+        update.message.reply_text(sect_header + 'Сектора:\n' + '\n'.join(result))
     else:
         update.message.reply_text('На уровне 1 секторов')
 
@@ -299,10 +304,10 @@ def code(bot, update):
         count_sect = oten.count_sectors()
         if result is True:
             update.message.reply_text('✅ Код верный.\n(осталось {0} из {1})'.format(
-                                            count_sect[0],count_sect[1]))
+                                            count_sect[1],count_sect[0]))
         elif result is False:
             update.message.reply_text('❌ Код НЕ верный.\n(осталось {0} из {1})'.format(
-                                            count_sect[0],count_sect[1]))
+                                            count_sect[1],count_sect[0]))
         else:
             pass
 

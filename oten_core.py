@@ -132,9 +132,9 @@ class Oten():
         '''-'''
         if number is None:
             number = self.help_open
-        header = 'Подсказка {}'.format(number)
+        header = 'Подсказка {0}'.format(number)
         hint_blocks = self.req.get_block(header=header)
-        hint_text = '*{}:*\n{}'.format(header, hint_blocks[0])
+        hint_text = '❔*{0}:*\n{1}'.format(header, hint_blocks[0])
         return hint_text, hint_blocks[1]
 
 
@@ -150,11 +150,11 @@ class Oten():
         result = ''
 
         if time_up:
-            result += 'Авто Переход через {}\n\n'.format(time_up[0])
+            result += 'Авто Переход через {0}\n\n'.format(time_up[0])
         if time_hint[0]:
             result += 'Подсказки будут через:\n'
             for time_str in time_hint[0]:
-                result += '{}\n'.format(time_str)
+                result += '{0}\n'.format(time_str)
         if result is not '':
             return result
         else:
