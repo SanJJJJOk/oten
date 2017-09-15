@@ -210,7 +210,7 @@ def task(bot, update):
         2) Set of images
     '''
     result = oten.get_task()
-    update.message.reply_text(result[0], parse_mode='markdown')
+    update.message.reply_text(result[0], parse_mode='markdown',disable_web_page_preview=True)
 
     #Try send Images
     if len(result) > 1:
