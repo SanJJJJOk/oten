@@ -254,7 +254,7 @@ def sect(bot, update):
     result = oten.get_sectors()
     count_sect = oten.count_sectors()
     if result:
-        sect_header = 'Осталось *{0}* из {1}\n'.format(count_sect[1],count_sect[0]))
+        sect_header = 'Осталось *{0}* из {1}\n'.format(count_sect[1],count_sect[0])
         update.message.reply_text(sect_header + 'Сектора:\n' + '\n'.join(result))
     else:
         update.message.reply_text('На уровне 1 секторов')
@@ -266,7 +266,7 @@ def sect_lef(bot, update):
     '''-'''
     result = oten.get_sectors(filt=False)
     if result:
-        sect_header = 'Осталось *{0}* из {1}\n'.format(count_sect[1],count_sect[0]))
+        sect_header = 'Осталось *{0}* из {1}\n'.format(count_sect[1],count_sect[0])
         update.message.reply_text(sect_header + 'Сектора:\n' + '\n'.join(result))
     else:
         update.message.reply_text('На уровне 1 секторов')
