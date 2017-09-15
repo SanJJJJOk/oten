@@ -304,10 +304,10 @@ def code(bot, update):
         count_sect = oten.count_sectors()
         if result is True:
             update.message.reply_text('✅ Код верный.\n(осталось {0} из {1})'.format(
-                                            count_sect[0],count_sect[1]))
+                                            count_sect[1],count_sect[0]))
         elif result is False:
             update.message.reply_text('❌ Код НЕ верный.\n(осталось {0} из {1})'.format(
-                                            count_sect[0],count_sect[1]))
+                                            count_sect[1],count_sect[0]))
         else:
             pass
 

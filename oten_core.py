@@ -105,7 +105,7 @@ class Oten():
         Rets:
             List of integer:
             1 - all sectors
-            2 - closed sectors
+            2 - left sectors
         '''
         sect_count = self.req.get_sectors_title()
         return sect_count
@@ -210,7 +210,7 @@ class Oten():
         sect_title = 'Нужно закрыть: {} из {}'.format(sect_count[1],sect_count[0])
 
         task = self.get_task()
-        logger.info(task)
+        #logger.info(task)
 
         result = '*{0}*\n{2}\n{1}\n{3}'.format(title, timer, sect_title, task[0])
         return result,task[1]
@@ -230,11 +230,11 @@ def main():
     ob_c1 = Oten()
     
     #Main
-    print(ob_c1.args_from_url('http://demo.en.cx/GameDetails.aspx?gid=26971'))
+    #print(ob_c1.args_from_url('http://demo.en.cx/GameDetails.aspx?gid=26971'))
     #forum
-    print(ob_c1.args_from_url('http://demo.en.cx/gameengines/encounter/play/26971'))
+    #print(ob_c1.args_from_url('http://demo.en.cx/gameengines/encounter/play/26971'))
     #game
-    ob_c1.args_from_url('http://demo.en.cx/GameDetails.aspx?gid=26971')
+    #ob_c1.args_from_url('http://demo.en.cx/GameDetails.aspx?gid=26971')
 
 '''
 Обработка даты
