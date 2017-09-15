@@ -102,7 +102,7 @@ def get_page_demon(bot, chat_id):
             else:
                 new_help = oten.check_helps()
                 if new_help:
-                        bot.send_message(chat_id=chat_id, text='❔*Подсказка*:\n' + new_help[0],
+                        bot.send_message(chat_id=chat_id, text='❓*Подсказка*:\n' + new_help[0],
                                         parse_mode='markdown')
                         #Try send Images
                         if len(new_help[1]) > 1:
@@ -265,6 +265,7 @@ def sect(bot, update):
 def sect_lef(bot, update):
     '''-'''
     result = oten.get_sectors(filt=False)
+    count_sect = oten.count_sectors()
     if result:
         sect_header = '_Осталось _*{0}*_ из {1}_\n'.format(count_sect[1],count_sect[0])
         update.message.reply_text(sect_header + '*Сектора:*\n' + '\n'.join(result), parse_mode='markdown')

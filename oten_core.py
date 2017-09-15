@@ -134,7 +134,7 @@ class Oten():
             number = self.help_open
         header = 'Подсказка {0}'.format(number)
         hint_blocks = self.req.get_block(header=header)
-        hint_text = '❔*{0}:*\n{1}'.format(header, hint_blocks[0])
+        hint_text = '❓*{0}:*\n{1}'.format(header, hint_blocks[0])
         return hint_text, hint_blocks[1]
 
 
