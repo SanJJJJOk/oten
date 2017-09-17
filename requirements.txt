@@ -6,3 +6,5 @@ lxml==3.8.0
 python-telegram-bot==6.1.0
 requests==2.18.1
 urllib3==1.21.1
+unidecode==0.4.21
+

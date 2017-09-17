@@ -123,7 +123,9 @@ class Request(object):
         str_out = str_in.replace('\t', '')
         str_out = str_in.replace('\r', '\n')
         str_out = str_in.replace('\n\n', '\n')
+        str_out = str_in.replace('\xa0', ' ')
         str_out = str_out.strip()
+        
         return str_out
 
 
@@ -214,7 +216,6 @@ class Request(object):
         return(total, need)
 
 
-
     def get_sectors(self, page=None, filt=None):
         '''
         Get Sectors at lvl
@@ -251,6 +252,42 @@ class Request(object):
         return result.copy()
 
 
+    def get_bonus_list(self, page=None):
+        '''
+        Find and count helps on lvl
+
+        Returns:
+            tuple of list:
+                1: list available bonus
+                2: list completed bonus
+                3: list future bonus
+        '''
+        if page is None:
+            page = self.page
+
+        bonus_dict = {}
+
+        bonus_avaible = page.xpath('//h3[@class="color_bonus" and contains(., "Бонус")]/text()')
+        bonus_complet = page.xpath('//h3[@class="color_correct" and contains(., "Бонус")]/text()')
+        bonus_future = page.xpath('//span[@class="color_dis" and starts-with(., "Бонус")]/b/text()')
+
+        for item in bonus_avaible:
+            bonus_dict[self.clear_string(item)] = False
+
+        for item in bonus_complet:
+            bonus_dict[self.clear_string(item)] = True
+
+        for item in bonus_future:
+            bonus_dict[self.clear_string(item)] = None
+        
+        bonus_dict.pop('')
+
+        if bonus_dict:
+            return bonus_dict
+        else:
+            return None
+
+
     def get_block(self, page=None, header='Задание'):
         '''
         Get full block with name
@@ -272,7 +309,10 @@ class Request(object):
 
         #Get start point
         try:
-            start = cont.index(cont.xpath('//h3[text()="%s"]' %header)[0])+1
+            #start = cont.index(cont.xpath('//h3[text()="%s"]' %header)[0])+1
+            #start = cont.index(cont.xpath('//h3[starts-with(., "%s")]' %header)[0])+1
+            start = cont.index(cont.xpath('//h3[contains(text(),"%s")]' %header)[0])+1
+            
         except IndexError:
             start = None
         
@@ -303,6 +343,85 @@ class Request(object):
             return("\n".join(text_block),tuple(imgs_block))
         else:
             return None
+
+
+    def get_global_mess(self, page=None):
+        '''
+        Get global messages from authors
+
+        Return:
+            Text block (str)
+        
+        If there is't messages return None
+        '''
+
+        if page is None:
+            page = self.page
+
+        try:        
+            global_mess = self.clear_string(page.xpath('//p[@class="globalmess"]')[0].text_content())
+        except IndexError:
+            global_mess = None
+        
+        return global_mess
+
+
+
+    def get_raw_page(self, page=None):
+        '''
+        Get full block with name
+
+        Return:
+            list:
+                1: Text block (str)
+                2: Imgs list (tuple)
+        
+        If there is't block return None
+        '''
+
+        if page is None:
+            page = self.page
+        end = None
+        
+        #Get parent for index element
+        cont = page.xpath('//div[@class="content"]')[0]
+
+        #Get start point
+        try:
+            start = cont.index(cont.xpath('//h2')[0])+1
+        except IndexError:
+            start = None
+        
+        if start is not None:
+            #Try get end point.
+            try:
+                space_list = cont.xpath('//div[@class="spacer"]')
+                end = cont.index(space_list[-1])
+            except IndexError:
+                pass
+
+            #Fix <br> tags
+            for br_tag in cont.xpath("*//br"):
+                br_tag.tail = "\n" + br_tag.tail if br_tag.tail else "\n"
+
+            text_block = []
+            imgs_block = set()
+
+            #Foreach element between tags
+            for item in cont[start:end]:
+                #headling image
+                img_list, item = self.handling_img_block(item)
+                imgs_block.update(img_list)
+                #headling text
+                try:
+                    text_block.append(self.clear_string(item.text_content()))                    
+                except ValueError:
+                    pass
+
+            return("\n".join(text_block),tuple(imgs_block))
+        else:
+            return None
+
 
 
     def handling_img_block(self, page):
@@ -362,9 +481,19 @@ def main():
     requ = Request()
     #page = requ.get_page('http://demo.en.cx/gameengines/encounter/play/26971')
     
-    page = html.parse('example_page/without_time.html')
+    #page = html.parse('example_page/without_time.html')
+    page = html.parse('page/bonus/Сеть городских игр Encounter.html')
     
-    print(requ.check_help(page=page))
+    #print(requ.check_help(page=page))
+    
+    print(requ.get_global_mess(page=page))
+    
+    #bdic = requ.get_bonus_list(page=page)
+    #print(requ.get_block(page=page,header='Бонус 1'))
+    #print(requ.get_block(page=page))
+    
+    
+    
 
     #print(requ.get_sectors_title(page=page))
     #print(requ.get_sectors(page=page, filt=None))

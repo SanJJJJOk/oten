@@ -89,7 +89,9 @@ def get_page_demon(bot, chat_id):
                 bot.send_message(chat_id=chat_id, 
                             text='❗ #АП Уровень:{0}'.format(oten.lastlvl),
                             parse_mode='markdown')
+                            
                 mess, img_list = oten.new_lvl()
+                
                 bot.send_message(chat_id=chat_id, 
                             text=mess,
                             parse_mode='markdown',
@@ -102,11 +104,11 @@ def get_page_demon(bot, chat_id):
             else:
                 new_help = oten.check_helps()
                 if new_help:
-                        bot.send_message(chat_id=chat_id, text='❓*Подсказка*:\n' + new_help[0],
-                                        parse_mode='markdown')
-                        #Try send Images
-                        if len(new_help[1]) > 1:
-                            bot.send_message(chat_id=chat_id, text='\n'.join(new_help[1]))
+                    result = oten.get_helps(oten.help_open)
+                    if result:
+                        send_stream_mess(bot, chat_id, result)
+                    else:
+                        update.message.reply_text('Не возможно вывести подсказки')
         
         elif page_res is False:
             #If need login again
@@ -209,8 +211,26 @@ def task(bot, update):
         1) Text and Name_img with save structur html
         2) Set of images
     '''
-    result = oten.get_task()
+    result = oten.get_lvl_blocks()
     update.message.reply_text(result[0], parse_mode='markdown',disable_web_page_preview=True)
+
+    #Try send Images
+    if len(result) > 1:
+        for item in result[1]:
+            update.message.reply_text(item, parse_mode='markdown')
+
+
+@decor_log
+@access_chat
+def raw(bot, update):
+    '''
+    Get task from lvl
+    Return 2 message:
+        1) Text and Name_img with save structur html
+        2) Set of images
+    '''
+    result = oten.get_raw_page()
+    update.message.reply_text(result[0],disable_web_page_preview=True)
 
     #Try send Images
     if len(result) > 1:
@@ -231,20 +251,46 @@ def hint(bot, update, args):
     try:
         str_in = args[0]
         #Try get hint of number or last
-        result = oten.get_helps(number=str_in)
+        #result = oten.get_helps(number=str_in)
+        result = oten.get_helps(args[0])
         if result:
-            update.message.reply_text(result[0], parse_mode='markdown')
-            #Try send Images
-            if len(result) > 1:
-                for item in result[1]:
-                    update.message.reply_text(item, parse_mode='markdown')
+            send_stream_mess(bot, update.message.chat_id, result)
         else:
-            update.message.reply_text('На уровне {0} подсказок, на данный момент доступно {1}'\
-                            ''.format(oten.help_close + oten.help_open, oten.help_open))
-    except IndexError:
-        update.message.reply_text('На уровне {0} подсказок, на данный момент доступно {1}'\
-                        ''.format(oten.help_close + oten.help_open, oten.help_open))
+            update.message.reply_text('Не возможно вывести подсказки')
 
+    except IndexError:
+        result = oten.get_helps()
+        if result:
+            send_stream_mess(bot, update.message.chat_id, result)
+        else:
+            update.message.reply_text('Не возможно вывести подсказки')
+
+
+def send_stream_mess(bot, chat_id, stream_mess):
+    '''
+    Send all messages from  list of massages
+
+    Input:
+        - Bot 
+        - Update from Telegram Bot Api
+        - Stream of messages ( [ [str, [img_urls] ], [str, img_urls], ... ] ) 
+    '''
+
+    #chat_id = update.message.chat_id
+    for mess in stream_mess:
+        #update.message.reply_text(mess[0], parse_mode='markdown', disable_web_page_preview=True)
+        bot.send_message(chat_id=chat_id, 
+                            text=mess[0],
+                            parse_mode='markdown',
+                            disable_web_page_preview=True)
+        try:
+            for img in mess[1]:
+                #update.message.reply_text(mess[1], parse_mode='markdown')
+                bot.send_message(chat_id=chat_id, 
+                            text=img,
+                            parse_mode='markdown')
+        except IndexError:
+            pass
 
 
 @decor_log
@@ -345,6 +391,8 @@ def main():
     dp.add_handler(CommandHandler("time", time_left))
     dp.add_handler(CommandHandler("hint", hint, pass_args=True))
     dp.add_handler(CommandHandler("bonus", bonus))
+
+    dp.add_handler(CommandHandler("raw", raw))
 
 
     # on noncommand i.e message - echo the message on Telegram

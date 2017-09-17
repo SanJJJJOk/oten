@@ -34,6 +34,10 @@ class Oten():
         self.lastlvl = 0
         self.help_close = 0
         self.help_open = 0
+        self.bonus_dict = {}
+
+        self.st_monitor_bonus = 0
+
 
         if url_game is not None:
             self.args_from_url(url_game)
@@ -111,6 +115,19 @@ class Oten():
         return sect_count
 
 
+    def get_raw_page(self):
+        '''
+        Get full page text
+
+        Return:
+            list:
+                1: Text block (str) - Text with markdown
+                2: Imgs list (tuple)
+        '''
+
+        return self.req.get_raw_page()
+
+
     def get_task(self):
         """
         Get full block with name
@@ -130,12 +147,28 @@ class Oten():
 
     def get_helps(self, number=None):
         '''-'''
+        result = []
+
+        #Add header for hint blocks
+        str_hint_count = 'На уровне {0} подсказок, на данный момент доступно {1}\n'\
+                        ''.format(self.help_close + self.help_open, self.help_open)
+        result.append([str_hint_count,])
+
         if number is None:
-            number = self.help_open
-        header = 'Подсказка {0}'.format(number)
-        hint_blocks = self.req.get_block(header=header)
-        hint_text = '❓*{0}:*\n{1}'.format(header, hint_blocks[0])
-        return hint_text, hint_blocks[1]
+            #generate hint stream
+            for i in range(0, self.help_open):
+                number = i+1
+                header = 'Подсказка {0}'.format(number)
+                hint_blocks = self.req.get_block(header=header)
+                hint_text = '❓*{0}:*\n{1}'.format(header, hint_blocks[0])
+                result.append([hint_text, hint_blocks[1]])
+        else:
+            #generate hint stream for selected hint
+            header = 'Подсказка {0}'.format(number)
+            hint_blocks = self.req.get_block(header=header)
+            hint_text = '❓*{0}:*\n{1}'.format(header, hint_blocks[0])
+            result.append([hint_text, hint_blocks[1]])
+        return result
 
 
     def time_left(self):
@@ -190,19 +223,37 @@ class Oten():
         if helps_list is not None:
             heco = len(helps_list[0])
             heop = len(helps_list[1])
-            if (self.help_close != heco) and (self.help_open != heop):
+            if (self.help_close != heco) or (self.help_open != heop):
                 self.help_close = heco
                 self.help_open = heop
-                return self.req.get_block(header='Подсказка {}'.format(heop))
+                return True
             else:
                 return None
+        return None
 
 
     def new_lvl(self):
-        '''-'''
+        '''
+        Reset setting for new LVL
+        '''
+        
+        #Reset
         self.help_close = 0
         self.help_open = 0
+        self.bonus_dict.clear()
 
+        #Update info about hints
+        #helps_list = self.req.check_help()
+        #self.help_close = len(helps_list[0])
+        #self.help_open = len(helps_list[1])
+
+        return self.get_lvl_blocks()
+
+
+    def get_lvl_blocks(self):
+        '''
+        Get main information about lvl
+        '''
         title = self.req.get_lvl_title()
         timer = self.time_left()
         
@@ -212,11 +263,16 @@ class Oten():
         task = self.get_task()
         #logger.info(task)
 
-        result = '*{0}*\n{2}\n{1}\n{3}'.format(title, timer, sect_title, task[0])
+        result = '*{0}*\n{2}\n{1}\n\n{3}'.format(title, timer, sect_title, task[0])
         return result,task[1]
 
 
+    def get_bonus_list(self):
+        self.bonus_dict = self.req.get_bonus_list()
 
+
+    def get_global_mess(self):
+        return self.req.get_global_mess()
 
 
 def main():
