@@ -16,6 +16,7 @@ bot.
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram.ext.dispatcher import run_async
+from telegram.error import TimedOut
 from telegram import ChatAction
 from threading import Thread
 from oten_core import Oten
@@ -77,7 +78,7 @@ def get_page_demon(bot, chat_id):
     logger.info('Demon Start')
     #While game in active
     while oten.ingame is True:
-        time.sleep(2) # wait 2 sec
+        time.sleep(1) # wait 2 sec
         #bot.send_message(chat_id=chat_id, text='.')
         bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
         page_res = oten.req.get_page() # Get page
@@ -102,16 +103,13 @@ def get_page_demon(bot, chat_id):
                                 text=img,
                                 parse_mode='markdown')
             else:
-                new_help = oten.check_helps()
-                if new_help:
-                    result = oten.get_helps(oten.help_open)
-                    if result:
-                        send_stream_mess(bot, chat_id, result)
-                    else:
-                        update.message.reply_text('Не возможно вывести подсказки')
+                is_update = oten.chack_update()
+                if is_update:
+                    send_stream_mess(bot, chat_id, is_update)
         
         elif page_res is False:
             #If need login again
+            logger.info('Need relogin')
             oten.login_en()
         else:
             #if network error
@@ -273,7 +271,7 @@ def send_stream_mess(bot, chat_id, stream_mess):
     Input:
         - Bot 
         - Update from Telegram Bot Api
-        - Stream of messages ( [ [str, [img_urls] ], [str, img_urls], ... ] ) 
+        - Stream of messages ( [ [str, [img_urls] ], [str, [img_urls]], ... ] ) 
     '''
 
     #chat_id = update.message.chat_id
@@ -329,6 +327,16 @@ def time_left(bot, update):
     else:
         update.message.reply_text('Ни каких временых рамок нет')
 
+
+@decor_log
+@access_chat
+def auth_mess(bot, update):
+    '''-'''
+    result = oten.get_global_mess()
+    if result:
+        update.message.reply_text(result)
+    else:
+        update.message.reply_text('Сообщений от авторов нет')
 
 
 @decor_log
@@ -393,6 +401,8 @@ def main():
     dp.add_handler(CommandHandler("bonus", bonus))
 
     dp.add_handler(CommandHandler("raw", raw))
+    dp.add_handler(CommandHandler("mes", auth_mess))
+    
 
 
     # on noncommand i.e message - echo the message on Telegram

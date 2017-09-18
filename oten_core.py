@@ -35,6 +35,7 @@ class Oten():
         self.help_close = 0
         self.help_open = 0
         self.bonus_dict = {}
+        self.auth_mess = ''
 
         self.st_monitor_bonus = 0
 
@@ -215,6 +216,30 @@ class Oten():
             return None
 
 
+    def chack_update(self):
+        '''
+        Check all update at LVL and generation mess stream
+        
+        Return:
+            Tuple - [ [str], [str,[img_tuple]], [str,[img_tuple]] ]
+        '''
+        
+        update_list = []
+
+        new_help = self.check_helps()
+        if new_help:
+            update_list.extend(self.get_helps(self.help_open))
+
+
+        new_mess = self.req.get_global_mess()
+        if new_mess and self.auth_mess != new_mess:
+            self.auth_mess = new_mess
+            author_mess_head = '✉ Новое сообщение от авторов:\n{}'.format(new_mess)
+            update_list.append([author_mess_head])
+
+        return update_list.copy()
+
+
     def check_helps(self):
         '''
         Check open new help or not
@@ -254,6 +279,7 @@ class Oten():
         '''
         Get main information about lvl
         '''
+        result = ''
         title = self.req.get_lvl_title()
         timer = self.time_left()
         
@@ -272,7 +298,8 @@ class Oten():
 
 
     def get_global_mess(self):
-        return self.req.get_global_mess()
+        author_mess_head = '✉ Сообщение от авторов:\n'
+        return author_mess_head + self.req.get_global_mess()
 
 
 def main():
