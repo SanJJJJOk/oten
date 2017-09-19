@@ -6,6 +6,7 @@ import re
 import logging
 import csv
 import request
+from deepdiff import DeepDiff
 from operator import itemgetter
 from request import Request
 
@@ -32,6 +33,7 @@ class Oten():
         self.ingame = False
         
         self.lastlvl = 0
+        self.answer_block = False
         self.help_close = 0
         self.help_open = 0
         self.bonus_dict = {}
@@ -140,10 +142,10 @@ class Oten():
         
         If there is't block return None
         """
-        task_blocks = self.req.get_block(header='Задание')
-        task_text = '*Задание:*\n{}'.format(task_blocks[0])
+        task_unit = self.req.get_unit(header='Задание')
+        task_text = '*Задание:*\n{}'.format(task_unit[0])
 
-        return task_text, task_blocks[1]
+        return task_text, task_unit[1]
 
 
     def get_helps(self, number=None):
@@ -160,15 +162,15 @@ class Oten():
             for i in range(0, self.help_open):
                 number = i+1
                 header = 'Подсказка {0}'.format(number)
-                hint_blocks = self.req.get_block(header=header)
-                hint_text = '❓*{0}:*\n{1}'.format(header, hint_blocks[0])
-                result.append([hint_text, hint_blocks[1]])
+                hint_unit = self.req.get_unit(header=header)
+                hint_text = '❓*{0}:*\n{1}'.format(header, hint_unit[0])
+                result.append([hint_text, hint_unit[1]])
         else:
             #generate hint stream for selected hint
             header = 'Подсказка {0}'.format(number)
-            hint_blocks = self.req.get_block(header=header)
-            hint_text = '❓*{0}:*\n{1}'.format(header, hint_blocks[0])
-            result.append([hint_text, hint_blocks[1]])
+            hint_unit = self.req.get_unit(header=header)
+            hint_text = '❓*{0}:*\n{1}'.format(header, hint_unit[0])
+            result.append([hint_text, hint_unit[1]])
         return result
 
 
@@ -210,10 +212,47 @@ class Oten():
 
 
     def check_answer(self, answer=''):
+        '''
+        Input:
+            type: True - Level Answer
+                False - Bonus Answer
+        '''
         if self.ingame:
-            return self.req.send_answer(answer=answer)
-        else:
-            return None
+            #If theris block answer
+            if self.answer_block:
+
+                #Send to answer form
+                if answer.startswith('..'):
+                    result = self.req.send_answer(answer=answer[2:])
+                    count_sect = self.count_sectors()
+                    if result is True:
+                        return '✅ Код верный.\n(осталось {0} из {1})'.format(
+                                                count_sect[1],count_sect[0])
+                    elif result is False:
+                        return '❌ Код НЕ верный.\n(осталось {0} из {1})'.format(
+                                                count_sect[1],count_sect[0])
+                
+                #Send to bonus form
+                else:
+                    result = self.req.send_answer(answer=answer[1:], type=False)
+                    if result is True:
+                        return '✅ Код верный.\n\n_На уровне присутствует ограничение на ввод_\n' +\
+                                '_Для отправки в ответы необходимо_".."'
+                    elif result is False:
+                        return '❌ Код НЕ верный.\n\n_На уровне присутствует ограничение на ввод_\n' +\
+                                '_Для отправки в ответы необходимо_".."'
+                
+            #If there is't block
+            else:
+                result = self.req.send_answer(answer=answer[1:])
+                count_sect = self.count_sectors()
+                if result is True:
+                    return '✅ Код верный.\n(осталось {0} из {1})'.format(
+                                            count_sect[1],count_sect[0])
+                elif result is False:
+                    return '❌ Код НЕ верный.\n(осталось {0} из {1})'.format(
+                                            count_sect[1],count_sect[0])
+
 
 
     def chack_update(self):
@@ -237,6 +276,12 @@ class Oten():
             author_mess_head = '✉ Новое сообщение от авторов:\n{}'.format(new_mess)
             update_list.append([author_mess_head])
 
+        if self.st_monitor_bonus != 0:
+            new_bonus = self.check_bonus()
+            if new_bonus:
+                update_list.extend(new_bonus)
+
+        
         return update_list.copy()
 
 
@@ -263,6 +308,7 @@ class Oten():
         '''
         
         #Reset
+        self.answer_block = False
         self.help_close = 0
         self.help_open = 0
         self.bonus_dict.clear()
@@ -272,10 +318,16 @@ class Oten():
         #self.help_close = len(helps_list[0])
         #self.help_open = len(helps_list[1])
 
-        return self.get_lvl_blocks()
+        answer_block = self.req.check_answer_block()
+        if answer_block:
+            self.answer_block = True
+
+        return self.get_lvl_body()
+
+        
 
 
-    def get_lvl_blocks(self):
+    def get_lvl_body(self):
         '''
         Get main information about lvl
         '''
@@ -287,14 +339,90 @@ class Oten():
         sect_title = 'Нужно закрыть: {} из {}'.format(sect_count[1],sect_count[0])
 
         task = self.get_task()
-        #logger.info(task)
-
+        
         result = '*{0}*\n{2}\n{1}\n\n{3}'.format(title, timer, sect_title, task[0])
         return result,task[1]
 
 
     def get_bonus_list(self):
-        self.bonus_dict = self.req.get_bonus_list()
+        bonus_list = self.req.get_bonus_list()
+        logger.info(bonus_list)
+        result = []
+        for bonus in bonus_list:
+            result.append(self.req.get_unit(header=bonus, 
+                                            offset=0))
+        return result
+        
+
+
+    def check_bonus(self):
+        '''
+        Check open new help or not
+
+        1 - open ponus
+        2 - completle bonus
+        3 - close bonus
+
+        '''
+        
+        #Create list of bonus
+        bonus_list = self.req.get_bonus_list()
+        
+        if self.bonus_dict != bonus_list:
+
+            result = []    
+            #Compare old and new bonus lists
+            ddiff = DeepDiff(self.bonus_dict, bonus_list)
+            
+            #logger.info(ddiff)
+
+            #For each new bonus
+
+            #values_changed
+            try:
+                for element in ddiff["values_changed"]:
+                    #If bonus completle
+                    if ddiff["values_changed"][element]['new_value'] == 2:
+                        result.append(self.req.get_unit(
+                                            header=element.split("'")[1], 
+                                            offset=0,
+                                            icon = '✅ ')
+                        )
+                    #If bonus open
+                    elif ddiff["values_changed"][element]['new_value'] == 1:
+                        result.append(self.req.get_unit(
+                                            header=element.split("'")[1], 
+                                            offset=0,
+                                            icon = '❎ ')
+                        )
+            except KeyError:
+                pass
+
+            #dictionary_item_added
+            try:
+                for element in ddiff["dictionary_item_added"]:
+                    #If bonus completle
+                    if bonus_list[element.split("'")[1]] == 2:
+                        result.append(self.req.get_unit(
+                                            header=element.split("'")[1], 
+                                            offset=0,
+                                            icon = '✅ ')
+                        )
+                    #If bonus open
+                    elif bonus_list[element.split("'")[1]] == 1:
+                        result.append(self.req.get_unit(
+                                            header=element.split("'")[1], 
+                                            offset=0,
+                                            icon = '❎ ')
+                        )
+            except KeyError:
+                pass
+            
+            self.bonus_dict = bonus_list
+            #logger.info(result)
+            return result
+        else:
+            return None
 
 
     def get_global_mess(self):

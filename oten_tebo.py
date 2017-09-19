@@ -78,7 +78,7 @@ def get_page_demon(bot, chat_id):
     logger.info('Demon Start')
     #While game in active
     while oten.ingame is True:
-        time.sleep(1) # wait 2 sec
+        time.sleep(2) # wait 2 sec
         #bot.send_message(chat_id=chat_id, text='.')
         bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
         page_res = oten.req.get_page() # Get page
@@ -102,11 +102,13 @@ def get_page_demon(bot, chat_id):
                         bot.send_message(chat_id=chat_id, 
                                 text=img,
                                 parse_mode='markdown')
+            
+            #Check update
             else:
                 is_update = oten.chack_update()
                 if is_update:
                     send_stream_mess(bot, chat_id, is_update)
-        
+
         elif page_res is False:
             #If need login again
             logger.info('Need relogin')
@@ -209,7 +211,8 @@ def task(bot, update):
         1) Text and Name_img with save structur html
         2) Set of images
     '''
-    result = oten.get_lvl_blocks()
+
+    result = oten.get_lvl_body()
     update.message.reply_text(result[0], parse_mode='markdown',disable_web_page_preview=True)
 
     #Try send Images
@@ -275,20 +278,25 @@ def send_stream_mess(bot, chat_id, stream_mess):
     '''
 
     #chat_id = update.message.chat_id
-    for mess in stream_mess:
-        #update.message.reply_text(mess[0], parse_mode='markdown', disable_web_page_preview=True)
+    if stream_mess:
+        for mess in stream_mess:
+            #update.message.reply_text(mess[0], parse_mode='markdown', disable_web_page_preview=True)
+            bot.send_message(chat_id=chat_id, 
+                                text=mess[0],
+                                parse_mode='markdown',
+                                disable_web_page_preview=True)
+            try:
+                for img in mess[1]:
+                    #update.message.reply_text(mess[1], parse_mode='markdown')
+                    bot.send_message(chat_id=chat_id, 
+                                text=img,
+                                parse_mode='markdown')
+            except IndexError:
+                pass
+    else:
         bot.send_message(chat_id=chat_id, 
-                            text=mess[0],
-                            parse_mode='markdown',
-                            disable_web_page_preview=True)
-        try:
-            for img in mess[1]:
-                #update.message.reply_text(mess[1], parse_mode='markdown')
-                bot.send_message(chat_id=chat_id, 
-                            text=img,
-                            parse_mode='markdown')
-        except IndexError:
-            pass
+                                text='INFO: Это пустое сообщение',
+                                parse_mode='markdown')
 
 
 @decor_log
@@ -343,28 +351,22 @@ def auth_mess(bot, update):
 @access_chat
 def bonus(bot, update):
     '''-'''
-    update.message.reply_text('')
+    result = oten.get_bonus_list()
+    send_stream_mess(bot, update.message.chat_id, result)
 
 
 def code(bot, update):
     '''-'''
-    if update.message.text.startswith('.') and update.message.chat_id in access_chat_list:
+    if update.message.chat_id in access_chat_list and update.message.text.startswith('.'):
         logger.info('IN: ChatID:%d UserID:%d User:"%s" Message:"%s"' %(
                     update.message.chat_id,
                     update.message.from_user.id,
                     update.message.from_user.username,
                     update.message.text))
 
-        result = oten.check_answer(update.message.text[1:])
-        count_sect = oten.count_sectors()
-        if result is True:
-            update.message.reply_text('✅ Код верный.\n(осталось {0} из {1})'.format(
-                                            count_sect[1],count_sect[0]))
-        elif result is False:
-            update.message.reply_text('❌ Код НЕ верный.\n(осталось {0} из {1})'.format(
-                                            count_sect[1],count_sect[0]))
-        else:
-            pass
+        result = oten.check_answer(update.message.text)
+        update.message.reply_text(result, parse_mode='markdown')
+    
 
 def error(bot, update, error):
     '''-'''

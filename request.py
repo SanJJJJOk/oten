@@ -4,6 +4,8 @@ import random
 import requests
 import logging
 import time
+import copy
+import re
 from lxml import html, etree
 
 
@@ -62,22 +64,69 @@ class Request(object):
             return False
 
 
-    def send_answer(self, url=None, answer=''):
+    def check_answer_block(self, page=None):
+        '''
+        Is there block for answer or not
+
+        Result:
+            Str - There is
+            None - There is not
+        '''
+        if page is None:
+            page = self.page
+
+        answer_block = None
+
+        if page is not None:
+            try:
+                answer_block  = self.clear_string(page.xpath('//div[@class="hint blockageinfo"]/text()')[0])
+            except IndexError:
+                pass
+            
+            try:
+                answer_block  = self.clear_string( 
+                                    self.remove_cdata(
+                                        page.xpath(
+                                            '//div[@class="aside"]/div[@class="blocked"]'
+                                        )[0].text_content()
+                                    )
+                                ) 
+                                    
+            except IndexError:
+                pass
+
+        return answer_block
+
+
+
+    def send_answer(self, url=None, answer='', type=True):
+        '''
+        Input:
+            type: True - Level Answer
+                False - Bonus Answer
+        '''
+        
         if url is None:
             url = self.url
 
         last_data = self.page.xpath('//input[@type="hidden"]/@value')
-        userdata = {
-            'LevelId': last_data[0],
-            'LevelNumber': last_data[1],
-            'LevelAction.Answer': answer
-            }
+        if type:
+            userdata = {
+                'LevelId': last_data[0],
+                'LevelNumber': last_data[1],
+                'LevelAction.Answer': answer
+                }
+        else:
+            userdata = {
+                'LevelId': last_data[0],
+                'LevelNumber': last_data[1],
+                'BonusAction.Answer': answer
+                }
 
         resp = self.session.post(url, data=userdata)
         result = self._request_wrapper(resp)
         if result:
             text_answer = self.page.xpath('//*[@class="history"]/li[1]/text()')[0]
-            logger.info(text_answer)
             if 'код верный' in text_answer:
                 return True
             else:
@@ -121,11 +170,14 @@ class Request(object):
     def clear_string(self, str_in):
         '''Удаление \t и \n'''
         str_out = str_in.replace('\t', '')
-        str_out = str_in.replace('\r', '\n')
-        str_out = str_in.replace('\n\n', '\n')
-        str_out = str_in.replace('\xa0', ' ')
+        str_out = str_out.replace('\r', '\n')
+        str_out = str_out.replace('\n\n', '\n')
+        str_out = str_out.replace('\xa0', ' ')
         str_out = str_out.strip()
-        
+        return str_out
+
+    def remove_cdata(self, str_in):
+        str_out = re.sub('\/\/<!\[CDATA\[[\d\D]*\/\/\]\]>', '', str_in)
         return str_out
 
 
@@ -164,6 +216,7 @@ class Request(object):
         '''-'''
         if page is None:
             page = self.page
+
         ap = page.xpath('//h3[@class="timer"]/span/text()')
         if ap:
             return ap
@@ -272,32 +325,39 @@ class Request(object):
         bonus_future = page.xpath('//span[@class="color_dis" and starts-with(., "Бонус")]/b/text()')
 
         for item in bonus_avaible:
-            bonus_dict[self.clear_string(item)] = False
+            bonus_dict[self.clear_string(item)] = 1
 
         for item in bonus_complet:
-            bonus_dict[self.clear_string(item)] = True
+            bonus_dict[self.clear_string(item)] = 2
 
         for item in bonus_future:
-            bonus_dict[self.clear_string(item)] = None
-        
-        bonus_dict.pop('')
-
+            bonus_dict[self.clear_string(item)] = 3
+                
         if bonus_dict:
             return bonus_dict
         else:
             return None
 
 
-    def get_block(self, page=None, header='Задание'):
+    def get_unit(self, page=None, header='Задание', offset=1, icon = ''):
         '''
-        Get full block with name
+        Get full unit with name
+
+        Input:
+            1: Page for parsing
+            2: header - str, search this text in <h3> or <h2>
+                        and  parse this unit
+            3: Offset - 0 - get header of unit
+                        1 - left header of unit
+            4: Icon - Unicode emoji for start line
+                        source http://www.unicode.org/emoji/charts/full-emoji-list.html
 
         Return:
             list:
-                1: Text block (str)
+                1: Text unit (str)
                 2: Imgs list (tuple)
         
-        If there is't block return None
+        If there is't unit return None
         '''
 
         if page is None:
@@ -305,13 +365,13 @@ class Request(object):
         end = None
         
         #Get parent for index element
-        cont = page.xpath('//div[@class="content"]')[0]
+        cont = copy.deepcopy(page.xpath('//div[@class="content"]')[0])
 
         #Get start point
         try:
             #start = cont.index(cont.xpath('//h3[text()="%s"]' %header)[0])+1
             #start = cont.index(cont.xpath('//h3[starts-with(., "%s")]' %header)[0])+1
-            start = cont.index(cont.xpath('//h3[contains(text(),"%s")]' %header)[0])+1
+            start = cont.index(cont.xpath('//h3[contains(text(),"%s")]' %header)[0])+offset
             
         except IndexError:
             start = None
@@ -328,19 +388,19 @@ class Request(object):
             #Fix <br> tags
             for br_tag in cont.xpath("*//br"):
                 br_tag.tail = "\n" + br_tag.tail if br_tag.tail else "\n"
-
-            text_block = []
-            imgs_block = set()
+            
+            text_unit = []
+            imgs_unit = set()
 
             #Foreach element between tags
             for item in cont[start:end]:
                 #headling image
-                img_list, item = self.handling_img_block(item)
-                imgs_block.update(img_list)
+                img_list, item = self.handling_img_unit(item)
+                imgs_unit.update(img_list)
                 #headling text
-                text_block.append(self.clear_string(item.text_content()))
+                text_unit.append(self.clear_string(item.text_content()))
             
-            return("\n".join(text_block),tuple(imgs_block))
+            return(icon + "\n".join(text_unit),tuple(imgs_unit))
         else:
             return None
 
@@ -384,7 +444,7 @@ class Request(object):
         end = None
         
         #Get parent for index element
-        cont = page.xpath('//div[@class="content"]')[0]
+        cont = copy.deepcopy(page.xpath('//div[@class="content"]')[0])
 
         #Get start point
         try:
@@ -400,9 +460,11 @@ class Request(object):
             except IndexError:
                 pass
 
+            '''
             #Fix <br> tags
             for br_tag in cont.xpath("*//br"):
                 br_tag.tail = "\n" + br_tag.tail if br_tag.tail else "\n"
+            '''
 
             text_block = []
             imgs_block = set()
@@ -410,7 +472,7 @@ class Request(object):
             #Foreach element between tags
             for item in cont[start:end]:
                 #headling image
-                img_list, item = self.handling_img_block(item)
+                img_list, item = self.handling_img_unit(item)
                 imgs_block.update(img_list)
                 #headling text
                 try:
@@ -424,7 +486,7 @@ class Request(object):
 
 
 
-    def handling_img_block(self, page):
+    def handling_img_unit(self, page):
         """
         Replace IMG tags to plain text
 
@@ -440,11 +502,11 @@ class Request(object):
             name = url[url.rfind('/')+1:]
 
             #image_list.add(name + ':' + url)
-            image_list.add('[{}]({})'.format(name, url))
+            image_list.add('[{0}]({1})'.format(name, url))
 
             newtag = etree.Element("a", href=url)
             #newtag.text = '[' + name + ']'
-            newtag.text = '[{}]({})'.format(name, url)
+            newtag.text = '[{0}]({1})'.format(name, url)
 
             img.getparent().replace(img,newtag)
         return image_list.copy(), page
@@ -457,7 +519,7 @@ class Request(object):
         Return:
             Imgs list (tuple)
         
-        If there is't block return None
+        If there is't unit return None
         '''
 
         if page is None:
@@ -482,16 +544,26 @@ def main():
     #page = requ.get_page('http://demo.en.cx/gameengines/encounter/play/26971')
     
     #page = html.parse('example_page/without_time.html')
-    page = html.parse('page/bonus/Сеть городских игр Encounter.html')
+    parser = html.HTMLParser(encoding='utf-8')
+    page = html.parse('page/block/Сеть городских игр Encounter.html', parser=parser)
+
     
+
+    print(requ.check_answer_block(page=page))
+
     #print(requ.check_help(page=page))
     
-    print(requ.get_global_mess(page=page))
+    #print(requ.get_global_mess(page=page))
     
     #bdic = requ.get_bonus_list(page=page)
-    #print(requ.get_block(page=page,header='Бонус 1'))
+    #print(requ.get_block(page=page,header='Бонус 1', offset=0, icon = '⬜ '))
     #print(requ.get_block(page=page))
     
+    #print( requ.get_unit(page=page,header='Задание', offset=0))
+    #print( requ.get_unit(page=page,header='Задание', offset=0))
+
+    #print( requ.get_raw_page(page))
+    #print( requ.get_raw_page(page))
     
     
 
