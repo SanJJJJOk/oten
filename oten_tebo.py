@@ -338,6 +338,17 @@ def time_left(bot, update):
 
 @decor_log
 @access_chat
+def time_left(bot, update):
+    '''-'''
+    result = oten.set_monitor_bonus()
+    if result:
+        update.message.reply_text(result)
+    else:
+        update.message.reply_text('Данная настройка отсутствует')
+
+
+@decor_log
+@access_chat
 def auth_mess(bot, update):
     '''-'''
     result = oten.get_global_mess()
@@ -405,8 +416,6 @@ def main():
     dp.add_handler(CommandHandler("raw", raw))
     dp.add_handler(CommandHandler("mes", auth_mess))
     
-
-
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, code))
 

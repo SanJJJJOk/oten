@@ -51,7 +51,7 @@ class Oten():
         if self.req.check_login(self.domain):
             self.req.get_page()
 
-
+    
     def args_from_url(self, url_str):
         """
         This metod get DOMAIN(domain) and Game-ID(gid) from URL
@@ -254,7 +254,6 @@ class Oten():
                                             count_sect[1],count_sect[0])
 
 
-
     def chack_update(self):
         '''
         Check all update at LVL and generation mess stream
@@ -269,7 +268,6 @@ class Oten():
         if new_help:
             update_list.extend(self.get_helps(self.help_open))
 
-
         new_mess = self.req.get_global_mess()
         if new_mess and self.auth_mess != new_mess:
             self.auth_mess = new_mess
@@ -281,8 +279,19 @@ class Oten():
             if new_bonus:
                 update_list.extend(new_bonus)
 
-        
         return update_list.copy()
+
+
+
+    def set_monitor_bonus(self):
+        '''
+        Switch monitor setting
+        '''
+        if self.st_monitor_bonus == 0:
+            self.st_monitor_bonus = 1
+        else:
+            self.st_monitor_bonus = 0
+        return 'Статус мониторинга - {0}'.format(self.st_monitor_bonus)
 
 
     def check_helps(self):
@@ -324,8 +333,6 @@ class Oten():
 
         return self.get_lvl_body()
 
-        
-
 
     def get_lvl_body(self):
         '''
@@ -353,7 +360,6 @@ class Oten():
                                             offset=0))
         return result
         
-
 
     def check_bonus(self):
         '''
@@ -431,28 +437,7 @@ class Oten():
 
 
 def main():
-    """-"""
-    '''
-    ob_c1 = Monitoring('http://72.en.cx/GameDetails.aspx?gid=58789')
-    ob_c1.login_en(login='', password='')
-    ob_c1.get_monitor()
-    #ob_c1.get_stats()
-    '''
-    ob_c1 = Oten()
-    
-    #Main
-    #print(ob_c1.args_from_url('http://demo.en.cx/GameDetails.aspx?gid=26971'))
-    #forum
-    #print(ob_c1.args_from_url('http://demo.en.cx/gameengines/encounter/play/26971'))
-    #game
-    #ob_c1.args_from_url('http://demo.en.cx/GameDetails.aspx?gid=26971')
-
-'''
-Обработка даты
-datetime_object = datetime.strptime(values[-1], '%d.%m.%Y %H:%M:%S.%f')
-print(datetime_object.time())
-'''
-
+    pass
 
 
 if __name__ == '__main__':
