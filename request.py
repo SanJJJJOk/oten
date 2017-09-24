@@ -395,7 +395,7 @@ class Request(object):
             #Foreach element between tags
             for item in cont[start:end]:
                 #headling image
-                img_list, item = self.handling_img_unit(item)
+                img_list, item = self.handling_link_unit(item)
                 imgs_unit.update(img_list)
                 #headling text
                 text_unit.append(self.clear_string(item.text_content()))
@@ -472,7 +472,7 @@ class Request(object):
             #Foreach element between tags
             for item in cont[start:end]:
                 #headling image
-                img_list, item = self.handling_img_unit(item)
+                img_list, item = self.handling_link_unit(item)
                 imgs_block.update(img_list)
                 #headling text
                 try:
@@ -485,8 +485,7 @@ class Request(object):
             return None
 
 
-
-    def handling_img_unit(self, page):
+    def handling_link_unit(self, page):
         """
         Replace IMG tags to plain text
 
@@ -494,7 +493,19 @@ class Request(object):
             img_list (list)
             page (html.doc)
         """
-        image_list = set()
+        url_list = set()
+        
+        #find all a[href] tags
+        for a_unit in page.xpath("./a[@href]"):
+            href = a_unit.get('href')
+            text = a_unit.text
+
+            #image_list.add(name + ':' + url)
+            url_list.add('[{0}]({1})'.format(text, href))
+
+            #replace text
+            a_unit.text = '[{0}]({1})'.format(text, href)          
+
         #find all img tags
         for img in page.xpath("./img"):
             #Take url and name
@@ -502,14 +513,13 @@ class Request(object):
             name = url[url.rfind('/')+1:]
 
             #image_list.add(name + ':' + url)
-            image_list.add('[{0}]({1})'.format(name, url))
+            url_list.add('[{0}]({1})'.format(name, url))
 
             newtag = etree.Element("a", href=url)
-            #newtag.text = '[' + name + ']'
             newtag.text = '[{0}]({1})'.format(name, url)
 
             img.getparent().replace(img,newtag)
-        return image_list.copy(), page
+        return url_list.copy(), page
 
 
     def get_get_img(self, page=None):
@@ -541,37 +551,11 @@ class Request(object):
 def main():
     """-"""
     requ = Request()
-    #page = requ.get_page('http://demo.en.cx/gameengines/encounter/play/26971')
-    
-    #page = html.parse('example_page/without_time.html')
+
     parser = html.HTMLParser(encoding='utf-8')
     page = html.parse('page/block/Сеть городских игр Encounter.html', parser=parser)
 
-    
-
-    print(requ.check_answer_block(page=page))
-
-    #print(requ.check_help(page=page))
-    
-    #print(requ.get_global_mess(page=page))
-    
-    #bdic = requ.get_bonus_list(page=page)
-    #print(requ.get_block(page=page,header='Бонус 1', offset=0, icon = '⬜ '))
-    #print(requ.get_block(page=page))
-    
-    #print( requ.get_unit(page=page,header='Задание', offset=0))
-    #print( requ.get_unit(page=page,header='Задание', offset=0))
-
-    #print( requ.get_raw_page(page))
-    #print( requ.get_raw_page(page))
-    
-    
-
-    #print(requ.get_sectors_title(page=page))
-    #print(requ.get_sectors(page=page, filt=None))
-    #print(requ.get_sectors(page=page, filt=True))
-    #print(requ.get_sectors(page=page, filt=False))
-
+    print(requ.get_unit(page=page))
 
 
 if __name__ == '__main__':
