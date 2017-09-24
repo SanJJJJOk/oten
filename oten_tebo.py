@@ -129,7 +129,7 @@ def start(bot, update):
 
 
 @decor_log
-@access_user
+@access_chat
 def help(bot, update):
     update.message.reply_text(config.HELP)
     
@@ -257,14 +257,14 @@ def hint(bot, update, args):
         if result:
             send_stream_mess(bot, update.message.chat_id, result)
         else:
-            update.message.reply_text('Не возможно вывести подсказки')
+            update.message.reply_text(('Не возможно вывести подсказку',))
 
     except IndexError:
         result = oten.get_helps()
         if result:
             send_stream_mess(bot, update.message.chat_id, result)
         else:
-            update.message.reply_text('Не возможно вывести подсказки')
+            update.message.reply_text(('Не возможно вывести подсказки',))
 
 
 def send_stream_mess(bot, chat_id, stream_mess):

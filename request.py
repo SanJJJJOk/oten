@@ -320,18 +320,18 @@ class Request(object):
 
         bonus_dict = {}
 
-        bonus_avaible = page.xpath('//h3[@class="color_bonus" and contains(., "Бонус")]/text()')
-        bonus_complet = page.xpath('//h3[@class="color_correct" and contains(., "Бонус")]/text()')
-        bonus_future = page.xpath('//span[@class="color_dis" and starts-with(., "Бонус")]/b/text()')
+        bonus_avaible = page.xpath('//h3[@class="color_bonus" and contains(., "Бонус")]')
+        bonus_complet = page.xpath('//h3[@class="color_correct" and contains(., "Бонус")]')
+        bonus_future = page.xpath('//span[@class="color_dis" and starts-with(., "Бонус")]/b')
 
         for item in bonus_avaible:
-            bonus_dict[self.clear_string(item)] = 1
+            bonus_dict[self.clear_string(item.text)] = 1
 
         for item in bonus_complet:
-            bonus_dict[self.clear_string(item)] = 2
+            bonus_dict[self.clear_string(item.text)] = 2
 
         for item in bonus_future:
-            bonus_dict[self.clear_string(item)] = 3
+            bonus_dict[self.clear_string(item.text)] = 3
                 
         if bonus_dict:
             return bonus_dict
@@ -553,9 +553,9 @@ def main():
     requ = Request()
 
     parser = html.HTMLParser(encoding='utf-8')
-    page = html.parse('page/block/Сеть городских игр Encounter.html', parser=parser)
+    page = html.parse('page/t1/Сеть городских игр Encounter.html', parser=parser)
 
-    print(requ.get_unit(page=page))
+    print(requ.get_bonus_list(page=page))
 
 
 if __name__ == '__main__':
