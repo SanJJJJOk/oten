@@ -338,7 +338,7 @@ def time_left(bot, update):
 
 @decor_log
 @access_chat
-def time_left(bot, update):
+def set_monitor_bonus(bot, update):
     '''-'''
     result = oten.set_monitor_bonus()
     if result:
@@ -415,6 +415,8 @@ def main():
 
     dp.add_handler(CommandHandler("raw", raw))
     dp.add_handler(CommandHandler("mes", auth_mess))
+
+    dp.add_handler(CommandHandler("set_mon", set_monitor_bonus))
     
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, code))
