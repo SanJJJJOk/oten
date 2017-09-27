@@ -86,26 +86,33 @@ def get_page_demon(bot, chat_id):
         if page_res is True:
             new_lvl = oten.check_lvl()
             if new_lvl:
-                #If new level say it
-                bot.send_message(chat_id=chat_id, 
-                            text='❗ #АП Уровень:{0}'.format(oten.lastlvl),
-                            parse_mode='markdown')
-                            
-                mess, img_list = oten.new_lvl()
-                
-                bot.send_message(chat_id=chat_id, 
-                            text=mess,
-                            parse_mode='markdown',
-                            disable_web_page_preview=True)
-                if img_list:
-                    for img in img_list:
-                        bot.send_message(chat_id=chat_id, 
-                                text=img,
+                if oten.correct_lvl == True:
+                    #If new level say it
+                    bot.send_message(chat_id=chat_id, 
+                                text='❗ #АП Уровень:{0}'.format(oten.lastlvl),
                                 parse_mode='markdown')
-            
+                                
+                    mess, img_list = oten.new_lvl()
+                    
+                    bot.send_message(chat_id=chat_id, 
+                                text=mess,
+                                parse_mode='markdown',
+                                disable_web_page_preview=True)
+                    if img_list:
+                        for img in img_list:
+                            bot.send_message(chat_id=chat_id, 
+                                    text=img,
+                                    parse_mode='markdown')
+                
+                else:
+                    logger.info("UNcorrect lvl")
+                    result = oten.get_raw_page()
+                    bot.send_message(chat_id=chat_id, 
+                                    text = result[0], 
+                                    disable_web_page_preview=True)            
             #Check update
             else:
-                is_update = oten.chack_update()
+                is_update = oten.check_update()
                 if is_update:
                     send_stream_mess(bot, chat_id, is_update)
 
@@ -267,7 +274,7 @@ def hint(bot, update, args):
             update.message.reply_text(('Не возможно вывести подсказки',))
 
 
-def send_stream_mess(bot, chat_id, stream_mess):
+def send_stream_mess(bot, chat_id, stream_mess = None):
     '''
     Send all messages from  list of massages
 
@@ -278,7 +285,7 @@ def send_stream_mess(bot, chat_id, stream_mess):
     '''
 
     #chat_id = update.message.chat_id
-    if stream_mess:
+    if stream_mess is not None:
         for mess in stream_mess:
             #update.message.reply_text(mess[0], parse_mode='markdown', disable_web_page_preview=True)
             bot.send_message(chat_id=chat_id, 
@@ -309,7 +316,7 @@ def sect(bot, update):
         sect_header = '_Осталось _*{0}*_ из {1}_\n'.format(count_sect[1],count_sect[0])
         update.message.reply_text(sect_header + '*Сектора:*\n' + '\n'.join(result), parse_mode='markdown')
     else:
-        update.message.reply_text('На уровне 1 секторов')
+        update.message.reply_text('На уровне 1 сектор')
 
 
 @decor_log
@@ -322,7 +329,7 @@ def sect_lef(bot, update):
         sect_header = '_Осталось _*{0}*_ из {1}_\n'.format(count_sect[1],count_sect[0])
         update.message.reply_text(sect_header + '*Сектора:*\n' + '\n'.join(result), parse_mode='markdown')
     else:
-        update.message.reply_text('На уровне 1 секторов')
+        update.message.reply_text('На уровне 1 сектор')
 
 
 @decor_log
@@ -363,6 +370,7 @@ def auth_mess(bot, update):
 def bonus(bot, update):
     '''-'''
     result = oten.get_bonus_list()
+    logger.info(result)
     send_stream_mess(bot, update.message.chat_id, result)
 
 

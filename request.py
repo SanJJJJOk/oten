@@ -171,13 +171,14 @@ class Request(object):
         '''Удаление \t и \n'''
         str_out = str_in.replace('\t', '')
         str_out = str_out.replace('\r', '\n')
+        str_out = str_out.replace('\n\n\n', '\n')
         str_out = str_out.replace('\n\n', '\n')
         str_out = str_out.replace('\xa0', ' ')
         str_out = str_out.strip()
         return str_out
 
     def remove_cdata(self, str_in):
-        str_out = re.sub('\/\/<!\[CDATA\[[\d\D]*\/\/\]\]>', '', str_in)
+        str_out = re.sub('<!\[CDATA\[[\d\D]*\]>', '', str_in)
         return str_out
 
 
@@ -195,7 +196,7 @@ class Request(object):
                 lvl = page.xpath('//*[@name="LevelNumber"]/@value')[0]
                 return int(lvl)
             except IndexError:
-                return None
+                return int(0)
 
 
     def get_lvl_title(self, page=None):
@@ -245,6 +246,25 @@ class Request(object):
             return None
 
 
+    def check_fine_hints(self, page=None):
+        '''
+        Find and count helps on lvl
+
+        Returns:
+            tuple of list:
+                1: list time of close helps
+                2: list time of opened helps
+        '''
+        if page is None:
+            page = self.page
+
+        fine_hints = page.xpath('//h3[starts-with(., "Штрафная подсказка")]')
+        if fine_hints:
+            return len(fine_hints)
+        else:
+            return None
+
+
     def get_sectors_title(self, page=None):
         """
         Get information about sectors from en
@@ -257,15 +277,21 @@ class Request(object):
         if page is None:
             page = self.page
         
-        sector_title_1 = page.xpath('//h3[starts-with(., "На уровне")]/text()')[0]
-        #print(sector_title_1)
-        total = sector_title_1.split(' ')[2]
+        #There is sectors or not
+        try:
+            sector_title_1 = page.xpath('//h3[starts-with(., "На уровне")]/text()')[0]
+            #print(sector_title_1)
+            total = sector_title_1.split(' ')[2]
 
-        try:        
-            sector_title_1 = page.xpath('//h3[starts-with(., "На уровне")]/span/text()')[0]
-            need = sector_title_1.split(' ')[2][:-1]
+            try:        
+                sector_title_1 = page.xpath('//h3[starts-with(., "На уровне")]/span/text()')[0]
+                need = sector_title_1.split(' ')[2][:-1]
+            except IndexError:
+                need = total
+        #If only 1 sector
         except IndexError:
-            need = total
+            need = total = 1
+
         return(total, need)
 
 
@@ -427,7 +453,7 @@ class Request(object):
 
 
 
-    def get_raw_page(self, page=None):
+    def get_raw_page(self, page=None, correct_lvl=True):
         '''
         Get full block with name
 
@@ -435,54 +461,91 @@ class Request(object):
             list:
                 1: Text block (str)
                 2: Imgs list (tuple)
-        
-        If there is't block return None
         '''
 
         if page is None:
             page = self.page
-        end = None
         
-        #Get parent for index element
-        cont = copy.deepcopy(page.xpath('//div[@class="content"]')[0])
-
-        #Get start point
-        try:
-            start = cont.index(cont.xpath('//h2')[0])+1
-        except IndexError:
-            start = None
         
-        if start is not None:
-            #Try get end point.
+        if correct_lvl:
+            #Get parent for index element
+            cont = copy.deepcopy(page.xpath('//div[@class="content"]')[0])
+    
+            #Get start point
             try:
-                space_list = cont.xpath('//div[@class="spacer"]')
-                end = cont.index(space_list[-1])
+                start = cont.index(cont.xpath('//h2')[0])+1
             except IndexError:
-                pass
+                start = None
+            
+            #Set default end
+            end = None
 
-            '''
-            #Fix <br> tags
-            for br_tag in cont.xpath("*//br"):
-                br_tag.tail = "\n" + br_tag.tail if br_tag.tail else "\n"
-            '''
-
-            text_block = []
-            imgs_block = set()
-
-            #Foreach element between tags
-            for item in cont[start:end]:
-                #headling image
-                img_list, item = self.handling_link_unit(item)
-                imgs_block.update(img_list)
-                #headling text
+            logger.info(start)
+            if start is not None:
+                #Try get end point.
                 try:
-                    text_block.append(self.clear_string(item.text_content()))                    
-                except ValueError:
+                    space_list = cont.xpath('//div[@class="spacer"]')
+                    end = cont.index(space_list[-1])
+                except IndexError:
                     pass
 
-            return("\n".join(text_block),tuple(imgs_block))
+                '''
+                #Fix <br> tags
+                for br_tag in cont.xpath("*//br"):
+                    br_tag.tail = "\n" + br_tag.tail if br_tag.tail else "\n"
+                '''
+
+                text_block = []
+                imgs_block = set()
+
+                logger.info(start)
+                logger.info(end)
+
+                #Foreach element between tags
+                for item in cont[start:end]:
+                    #headling image
+                    img_list, item = self.handling_link_unit(item)
+                    imgs_block.update(img_list)
+                    #headling text
+                    try:
+                        text_block.append(self.clear_string(item.text_content()))                    
+                    except ValueError:
+                        pass
+
+                text_block = self.clear_string(
+                            self.remove_cdata("\n".join(text_block))                            )
+                return(text_block, tuple(imgs_block))
+            else:
+                return None
         else:
-            return None
+            #If is't not lvl
+            cont = copy.deepcopy(page.xpath('//body')[0])
+            #Tuple with clear string
+            return (self.clear_string(
+                        self.remove_cdata(
+                            cont.text_content()
+                        )
+                    ),)
+            '''
+            try:
+                #All message about game
+                cont = copy.deepcopy(page.xpath('//div[@class="content"]')[0])
+                #Tuple with clear string
+                return (self.clear_string(
+                            self.remove_cdata(
+                                cont.text_content()
+                            )
+                        ),)
+            except IndexError:
+                #Finish message
+                cont = copy.deepcopy(page.xpath('//*[@class="gameCongratulation"]')[0])
+                #Tuple with clear string
+                return (self.clear_string(
+                            self.remove_cdata(
+                                cont.text_content()
+                            )
+                        ),)
+            '''
 
 
     def handling_link_unit(self, page):
@@ -553,9 +616,9 @@ def main():
     requ = Request()
 
     parser = html.HTMLParser(encoding='utf-8')
-    page = html.parse('page/t1/Сеть городских игр Encounter.html', parser=parser)
+    page = html.parse('page/finish/Сеть городских игр Encounter.html', parser=parser)
 
-    print(requ.get_bonus_list(page=page))
+    print(requ.get_raw_page(page=page,correct_lvl=False))
 
 
 if __name__ == '__main__':

@@ -33,10 +33,11 @@ class Oten():
         self.ingame = False
         
         self.lastlvl = 0
+        self.correct_lvl = False
         self.answer_block = False
         self.help_close = 0
         self.help_open = 0
-        self.bonus_dict = {}
+        self.bonus_dict = dict()
         self.auth_mess = ''
 
         self.st_monitor_bonus = 0
@@ -73,7 +74,7 @@ class Oten():
 
     def generation_url(self):
         '''Return URL for game'''
-        return 'http://{}.en.cx/gameengines/encounter/play/{}'.format(self.domain, self.gid)
+        return 'http://{0}.en.cx/gameengines/encounter/play/{1}'.format(self.domain, self.gid)
 
 
     def login_en(self, login=None, password=None):
@@ -127,8 +128,7 @@ class Oten():
                 1: Text block (str) - Text with markdown
                 2: Imgs list (tuple)
         '''
-
-        return self.req.get_raw_page()
+        return self.req.get_raw_page(correct_lvl=self.correct_lvl)
 
 
     def get_task(self):
@@ -163,14 +163,16 @@ class Oten():
                 number = i+1
                 header = 'Подсказка {0}'.format(number)
                 hint_unit = self.req.get_unit(header=header)
-                hint_text = '❓*{0}:*\n{1}'.format(header, hint_unit[0])
-                result.append([hint_text, hint_unit[1]])
+                if hint_unit is not None:
+                    hint_text = '❓*{0}:*\n{1}'.format(header, hint_unit[0])
+                    result.append([hint_text, hint_unit[1]])
         else:
             #generate hint stream for selected hint
             header = 'Подсказка {0}'.format(number)
             hint_unit = self.req.get_unit(header=header)
-            hint_text = '❓*{0}:*\n{1}'.format(header, hint_unit[0])
-            result.append([hint_text, hint_unit[1]])
+            if hint_unit is not None:
+                hint_text = '❓*{0}:*\n{1}'.format(header, hint_unit[0])
+                result.append([hint_text, hint_unit[1]])
         return result
 
 
@@ -186,15 +188,15 @@ class Oten():
         result = ''
 
         if time_up:
-            result += 'Авто Переход через {0}\n\n'.format(time_up[0])
-        if time_hint[0]:
-            result += 'Подсказки будут через:\n'
+            result += 'Авто Переход через {0}\n'.format(time_up[0])
+        if time_hint:
+            result += '\nПодсказки будут через:\n'
             for time_str in time_hint[0]:
                 result += '{0}\n'.format(time_str)
         if result is not '':
             return result
         else:
-            return 'На уровне нет таймеров'
+            return 'На уровне нет таймеров\n'
 
 
     def check_lvl(self):
@@ -204,9 +206,18 @@ class Oten():
         else False
         '''
         current_lvl = self.req.get_lvl()
-        if (current_lvl is not None) and (current_lvl != self.lastlvl):
-            self.lastlvl = current_lvl
-            return True
+        if current_lvl != self.lastlvl:
+            if current_lvl != 0:
+                self.lastlvl = current_lvl
+                self.correct_lvl = True
+                return True
+            else:
+                #Если появилось какое-то сообщение
+                if self.correct_lvl == True:
+                    self.correct_lvl = False
+                    return True
+                else:
+                    return False
         else:
             return False
 
@@ -252,14 +263,13 @@ class Oten():
                                             count_sect[1],count_sect[0])
 
 
-    def chack_update(self):
+    def check_update(self):
         '''
         Check all update at LVL and generation mess stream
         
         Return:
             Tuple - [ [str], [str,[img_tuple]], [str,[img_tuple]] ]
         '''
-        
         update_list = []
 
         new_help = self.check_helps()
@@ -278,7 +288,6 @@ class Oten():
                 update_list.extend(new_bonus)
 
         return update_list.copy()
-
 
 
     def set_monitor_bonus(self):
@@ -320,11 +329,6 @@ class Oten():
         self.help_open = 0
         self.bonus_dict.clear()
 
-        #Update info about hints
-        #helps_list = self.req.check_help()
-        #self.help_close = len(helps_list[0])
-        #self.help_open = len(helps_list[1])
-
         answer_block = self.req.check_answer_block()
         if answer_block:
             self.answer_block = True
@@ -339,25 +343,36 @@ class Oten():
         result = ''
         title = self.req.get_lvl_title()
         timer = self.time_left()
+
+        fine_hint = self.req.check_fine_hints()
+        logger.info(fine_hint)
+        if fine_hint is not None:
+            fine_hint_text = '_На уровне штрафные подсказки {0}ш._\n'.format(fine_hint)
+        else:
+            fine_hint_text = ''
         
         sect_count = self.req.get_sectors_title()
         sect_title = 'Нужно закрыть: {} из {}'.format(sect_count[1],sect_count[0])
 
         task = self.get_task()
         
-        result = '*{0}*\n{2}\n{1}\n\n{3}'.format(title, timer, sect_title, task[0])
+        result = '*{0}*\n{1}\n{2}{3}\n{4}'.format(title, sect_title, timer, fine_hint_text, task[0])
         return result,task[1]
 
 
     def get_bonus_list(self):
         bonus_list = self.req.get_bonus_list()
-        logger.info(bonus_list)
-        result = []
-        for bonus in bonus_list:
-            result.append(self.req.get_unit(header=bonus, 
-                                            offset=0))
-        return result
         
+        result = []
+        if bonus_list is not None:
+            logger.info('bonus list')
+            logger.info(bonus_list)
+            for bonus in bonus_list:
+                result.append(self.req.get_unit(header=bonus, 
+                                                offset=0))
+        else:
+            result.append( ('На уровне бонусов нет',) )
+        return result
 
     def check_bonus(self):
         '''
@@ -372,7 +387,7 @@ class Oten():
         #Create list of bonus
         bonus_list = self.req.get_bonus_list()
         
-        if self.bonus_dict != bonus_list:
+        if (bonus_list is not None) and (self.bonus_dict != bonus_list):
 
             result = []    
             #Compare old and new bonus lists
