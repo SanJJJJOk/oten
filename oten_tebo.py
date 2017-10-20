@@ -384,7 +384,7 @@ def auth_mess(bot, update):
 def bonus(bot, update):
     '''-'''
     result = oten.get_bonus_list()
-    logger.info(result)
+    #logger.info(result)
     send_stream_mess(bot, update.message.chat_id, result)
 
 

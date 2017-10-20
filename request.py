@@ -170,9 +170,9 @@ class Request(object):
     def clear_string(self, str_in):
         '''Удаление \t и \n'''
         str_out = str_in.replace('\t', '')
-        str_out = str_out.replace('\r', '\n')
-        str_out = str_out.replace('\n\n\n', '\n')
-        #str_out = str_out.replace('\n\n', '\n')
+        str_out = str_out.replace('\r', '')
+        #str_out = str_out.replace('\n\n\n', '\n')
+        str_out = str_out.replace('\n\n', '\n')
         str_out = str_out.replace('\xa0', ' ')
         str_out = str_out.strip()
         return str_out
@@ -337,12 +337,12 @@ class Request(object):
         return result.copy()
 
 
-    def get_bonus_list(self, page=None):
+    def get_bonus_dict(self, page=None):
         '''
         Find and count helps on lvl
 
         Returns:
-            tuple of list:
+            Dict:
                 1: list available bonus
                 2: list completed bonus
                 3: list future bonus
@@ -369,6 +369,44 @@ class Request(object):
             return bonus_dict
         else:
             return None
+
+
+    def get_bonus_list(self, page=None):
+        '''
+        Find and count helps on lvl
+
+        Returns:
+            Tuple of list:
+                1: list available bonus
+                2: list completed bonus
+                3: list future bonus
+        '''
+        if page is None:
+            page = self.page
+
+        bonus_ava_out = []
+        bonus_com_out = []
+        bonus_fut_out = []
+
+        bonus_avaible = page.xpath('//h3[@class="color_bonus" and contains(., "Бонус")]')
+        bonus_complet = page.xpath('//h3[@class="color_correct" and contains(., "Бонус")]')
+        bonus_future = page.xpath('//span[@class="color_dis" and starts-with(., "Бонус")]/b')
+
+        if bonus_avaible or bonus_complet or bonus_future:
+
+            for item in bonus_avaible:
+                bonus_ava_out.append(self.clear_string(item.text_content()))
+
+            for item in bonus_complet:
+                bonus_com_out.append( self.clear_string(item.text_content()).replace('\n', ' ') )
+
+            for item in bonus_future:
+                bonus_fut_out.append(self.clear_string(item.text_content()))
+
+            return [bonus_ava_out, bonus_com_out, bonus_fut_out]
+
+        return None
+
 
 
     def get_unit(self, page=None, header='Задание', offset=1, icon = ''):
@@ -695,9 +733,6 @@ class Request(object):
             return len(ul)
         except IndexError:
             return None
-
-
-
 
 
 def main():

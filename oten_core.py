@@ -384,11 +384,64 @@ class Oten():
         
         result = []
         if bonus_list is not None:
-            logger.info('bonus list')
-            logger.info(bonus_list)
+            
+            #1: list available bonus
+            #2: list completed bonus
+            #3: list future bonus
+            
+            #Retern body bonus
+            '''
             for bonus in bonus_list:
                 result.append(self.req.get_unit(header=bonus, 
                                                 offset=0))
+            '''
+            
+            #Return title bonus
+            #print (bonus_list)
+            
+            #available
+            bonus_list_str = '\n'.join(bonus_list[0])
+            mes = "*Бонусы* (осталовь %d):\n" %len(bonus_list[0]) + bonus_list_str
+            result.append([mes,])
+
+            #completed
+            seconds = 0
+
+            for bonus in bonus_list[1]:
+                #print(bonus)
+                try:
+                    hour = re.search('\d час', bonus).group(0)
+                    seconds += int(hour.split(' ')[0])*3600
+                    #print(hour)
+                except AttributeError:
+                    pass
+
+                try:
+                    minut = re.search('\d мину', bonus).group(0)
+                    seconds += int(minut.split(' ')[0])*60
+                    #print(minut)
+                except AttributeError:
+                    pass
+                
+                try:
+                    second = re.search('\d секун', bonus).group(0)
+                    seconds += int(second.split(' ')[0])
+                    #print(second)
+                except AttributeError:
+                    pass
+
+
+            bonus_list_str = '\n'.join(bonus_list[1])
+            m, s = divmod(seconds, 60)
+            h, m = divmod(m, 60)
+            mes = "*Закрытые* (%d:%02d:%02d):\n" % (h, m, s) + bonus_list_str
+            result.append([mes,])
+
+            #available
+            bonus_list_str = '\n'.join(bonus_list[2])
+            mes = "*Будущие*:\n" + bonus_list_str
+            result.append([mes,])
+
         else:
             result.append( ('На уровне бонусов нет',) )
         return result
@@ -404,7 +457,7 @@ class Oten():
         '''
         
         #Create list of bonus
-        bonus_list = self.req.get_bonus_list()
+        bonus_list = self.req.get_bonus_dict()
         
         if (bonus_list is not None) and (self.bonus_dict != bonus_list):
 
