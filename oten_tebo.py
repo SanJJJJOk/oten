@@ -210,7 +210,7 @@ def gamestop(bot, update):
 
 
 @decor_log
-@access_user
+@access_chat
 def move_lvl(bot, update):
     '''-'''
 

@@ -77,7 +77,7 @@ class Oten():
         '''Set url for storm game mode'''
         
         if level is not None and self.storm is not None:
-            if 0 < int(level) < self.storm:
+            if 0 < int(level) <= self.storm:
                 self.req.url = self.generation_url(level)
                 return True
             else:

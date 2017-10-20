@@ -424,12 +424,8 @@ class Request(object):
             text_unit = []
             imgs_unit = set()
 
-            logger.info(start)
-            logger.info(end)
-
             #Foreach element between tags
             for item in cont[start:end]:
-                logger.info(item)
                 #headling image
                 img_list, item = self.handling_link_unit(item)
                 imgs_unit.update(img_list)
