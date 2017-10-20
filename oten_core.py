@@ -32,6 +32,7 @@ class Oten():
         self.req = Request()
         self.ingame = False
         
+        self.storm = None
         self.lastlvl = 0
         self.correct_lvl = False
         self.answer_block = False
@@ -72,9 +73,27 @@ class Oten():
             return None
 
 
-    def generation_url(self):
+    def set_url_lvl(self, level = None):
+        '''Set url for storm game mode'''
+        
+        if level is not None and self.storm is not None:
+            if 0 < int(level) < self.storm:
+                self.req.url = self.generation_url(level)
+                return True
+            else:
+                return False
+        else:
+            return False
+
+
+    def generation_url(self, level=None):
         '''Return URL for game'''
-        return 'http://{0}.en.cx/gameengines/encounter/play/{1}'.format(self.domain, self.gid)
+        
+        if level is None:
+            return 'http://{0}.en.cx/gameengines/encounter/play/{1}'.format(self.domain, self.gid)
+        else:
+            return 'http://{0}.en.cx/gameengines/encounter/play/{1}/?level={2}'.format(
+                                                        self.domain, self.gid, level)
 
 
     def login_en(self, login=None, password=None):
@@ -447,6 +466,10 @@ class Oten():
     def get_global_mess(self):
         author_mess_head = '✉ Сообщение от авторов:\n'
         return author_mess_head + self.req.get_global_mess()
+
+
+    def update_storm(self):
+        self.storm = self.req.check_shtorm()
 
 
 def main():

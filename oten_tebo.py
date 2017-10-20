@@ -210,6 +210,20 @@ def gamestop(bot, update):
 
 
 @decor_log
+@access_user
+def move_lvl(bot, update):
+    '''-'''
+
+    oten.update_storm()
+    lvl = update.message.text.split(None, 1)[1]
+    result = oten.set_url_lvl(lvl)
+    if result:
+        update.message.reply_text('Перешли на уровень %s' %lvl)
+    else:
+        update.message.reply_text('Перейти на уровень не возможно')
+
+
+@decor_log
 @access_chat
 def task(bot, update):
     '''
@@ -425,6 +439,8 @@ def main():
     dp.add_handler(CommandHandler("mes", auth_mess))
 
     dp.add_handler(CommandHandler("set_mon", set_monitor_bonus))
+    dp.add_handler(CommandHandler("level", move_lvl))
+    
     
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, code))

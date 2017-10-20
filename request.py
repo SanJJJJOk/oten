@@ -209,8 +209,14 @@ class Request(object):
             page = self.page
         
         if page is not None:
-            lvl_title = page.xpath('//h2')[0]
-            return lvl_title.text_content()
+            try:
+                lvl_title = page.xpath('//h2')[0]
+                return lvl_title.text_content()
+            except IndexError:
+                lvl_title = page.xpath('//li[@class="level-active"]/span')[0]
+                return lvl_title.text_content()
+            
+
 
 
     def check_ap(self, page=None):
@@ -678,15 +684,34 @@ class Request(object):
         return tuple(image_list)
 
 
+    def check_shtorm(self, page=None):
+        '''Check line or shorm '''
+
+        if page is None:
+            page = self.page
+
+        #Get parent for index element
+        cont = copy.deepcopy(page.xpath('//div[@class="content"]')[0])
+
+        #Find storm element
+        try:
+            ul = cont.xpath('//ul[@class="section level"][1]/li')
+            return len(ul)
+        except IndexError:
+            return None
+
+
+
+
 
 def main():
     """-"""
     requ = Request()
 
     parser = html.HTMLParser(encoding='utf-8')
-    page = html.parse('page/hitman_task/Сеть городских игр Encounter.html', parser=parser)
+    page = html.parse('page/storm/Сеть городских игр Encounter.html', parser=parser)
 
-    print(requ.get_unit2(page=page, header='Задание'))
+    print(requ.check_shtorm(page=page))
 
     #print(requ.get_raw_page(page=page,correct_lvl=False))
 
