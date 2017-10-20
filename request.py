@@ -7,6 +7,7 @@ import time
 import copy
 import re
 from lxml import html, etree
+import nltk
 
 
 # Enable logging
@@ -172,13 +173,13 @@ class Request(object):
         str_out = str_in.replace('\t', '')
         str_out = str_out.replace('\r', '\n')
         str_out = str_out.replace('\n\n\n', '\n')
-        str_out = str_out.replace('\n\n', '\n')
+        #str_out = str_out.replace('\n\n', '\n')
         str_out = str_out.replace('\xa0', ' ')
         str_out = str_out.strip()
         return str_out
 
     def remove_cdata(self, str_in):
-        str_out = re.sub('<!\[CDATA\[[\d\D]*\]>', '', str_in)
+        str_out = re.sub('\/\/<!\[CDATA\[[\d\D]*\]>', '', str_in)
         return str_out
 
 
@@ -418,8 +419,12 @@ class Request(object):
             text_unit = []
             imgs_unit = set()
 
+            logger.info(start)
+            logger.info(end)
+
             #Foreach element between tags
             for item in cont[start:end]:
+                logger.info(item)
                 #headling image
                 img_list, item = self.handling_link_unit(item)
                 imgs_unit.update(img_list)
@@ -429,6 +434,75 @@ class Request(object):
             return(icon + "\n".join(text_unit),tuple(imgs_unit))
         else:
             return None
+
+    
+    def get_unit2(self, page=None, header='Задание', offset=1, icon = ''):
+        '''
+        Get full unit with name
+
+        Input:
+            1: Page for parsing
+            2: header - str, search this text in <h3> or <h2>
+                        and  parse this unit
+            3: Offset - 0 - get header of unit
+                        1 - left header of unit
+            4: Icon - Unicode emoji for start line
+                        source http://www.unicode.org/emoji/charts/full-emoji-list.html
+
+        Return:
+            list:
+                1: Text unit (str)
+                2: Imgs list (tuple)
+        
+        If there is't unit return None
+        '''
+
+        if page is None:
+            page = self.page
+        
+        #Get parent for index element
+        cont = copy.deepcopy(page.xpath('//div[@class="content"]')[0])
+        
+        headers = []           
+        for element in cont.iter(tag='h3'):
+            headers.append(self.clear_string( self.remove_cdata(element.text_content())))
+
+        try:
+            start = [headers.index(s) for s in headers if header in s][0]
+        except:
+            return None
+
+        etree.strip_elements(cont, 'script')
+        text = self.clear_string(cont.text_content())
+        #print(text)
+
+        print('--')
+        print(headers[start])
+        print(headers[start+1])
+        print('--')
+        result = self.find_between(text, headers[start], headers[start+1])
+        print(result)
+
+
+
+    def get_headers(self, page=None):
+        '''-'''
+        if page is not None:
+            headers = []           
+            for element in page.iter(tag='h3'):
+                headers.append(self.clear_string( self.remove_cdata(element.text_content())))
+            return headers
+        else:
+            return None
+
+    
+    def find_between(self, text, first, last ):
+        try:
+            start = text.index( first ) + len( first )
+            end = text.index( last, start )
+            return text[start:end]
+        except ValueError:
+            return ""
 
 
     def get_global_mess(self, page=None):
@@ -466,7 +540,6 @@ class Request(object):
         if page is None:
             page = self.page
         
-        
         if correct_lvl:
             #Get parent for index element
             cont = copy.deepcopy(page.xpath('//div[@class="content"]')[0])
@@ -480,7 +553,6 @@ class Request(object):
             #Set default end
             end = None
 
-            logger.info(start)
             if start is not None:
                 #Try get end point.
                 try:
@@ -497,9 +569,6 @@ class Request(object):
 
                 text_block = []
                 imgs_block = set()
-
-                logger.info(start)
-                logger.info(end)
 
                 #Foreach element between tags
                 for item in cont[start:end]:
@@ -616,9 +685,11 @@ def main():
     requ = Request()
 
     parser = html.HTMLParser(encoding='utf-8')
-    page = html.parse('page/finish/Сеть городских игр Encounter.html', parser=parser)
+    page = html.parse('page/hitman_task/Сеть городских игр Encounter.html', parser=parser)
 
-    print(requ.get_raw_page(page=page,correct_lvl=False))
+    print(requ.get_unit2(page=page, header='Задание'))
+
+    #print(requ.get_raw_page(page=page,correct_lvl=False))
 
 
 if __name__ == '__main__':
