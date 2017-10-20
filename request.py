@@ -7,7 +7,6 @@ import time
 import copy
 import re
 from lxml import html, etree
-import nltk
 
 
 # Enable logging
