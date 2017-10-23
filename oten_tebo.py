@@ -405,7 +405,8 @@ def error(bot, update, error):
     '''-'''
     logger.warn('Update "%s" caused error "%s"' % (update, error))
 
-    
+@decor_log
+@access_chat    
 def hello(bot, update):
     '''-'''
     logger.warn('Update caused error')
