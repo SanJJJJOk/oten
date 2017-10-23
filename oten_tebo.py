@@ -33,8 +33,8 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 oten = Oten()
-access_user_list = {64798180,}
-access_chat_list = {64798180,}
+access_user_list = {64798180,228485598,}
+access_chat_list = {64798180,228485598,}
 
 
 def decor_log(method):
