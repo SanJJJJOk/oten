@@ -405,7 +405,14 @@ def error(bot, update, error):
     '''-'''
     logger.warn('Update "%s" caused error "%s"' % (update, error))
 
+@decor_log
+@access_chat    
+def hello(bot, update):
+    '''-'''
+    logger.warn('Update caused error')
+    update.message.reply_text("hello!")
 
+    
 def main():
     # Create the EventHandler and pass it your bot's token.
     updater = Updater(config.TOKEN)
@@ -437,6 +444,7 @@ def main():
 
     dp.add_handler(CommandHandler("raw", raw))
     dp.add_handler(CommandHandler("mes", auth_mess))
+    dp.add_handler(CommandHandler("hello", hello))
 
     dp.add_handler(CommandHandler("set_mon", set_monitor_bonus))
     dp.add_handler(CommandHandler("level", move_lvl))
