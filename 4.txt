@@ -1,12 +1,9 @@
-<<<<<<< HEAD
-aaa
-=======
-bbb
->>>>>>> bbb commit
 q
 q
 q
 q
+q
+a
 a
 a
 a
