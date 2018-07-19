@@ -1,2 +1,7 @@
+<<<<<<< HEAD
 qwe
 asd
+=======
+qwe
+zxc
+>>>>>>> com777
